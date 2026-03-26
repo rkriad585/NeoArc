@@ -1,0 +1,16 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background: Squircle (Nothing OS style) -->
+    <rect width="64" height="64" rx="16" fill="#0a0a0a"/>
+    
+    <!-- The Arc (Red) -->
+    <path d="M12 44C12 44 18 24 32 24C46 24 52 44 52 44" stroke="#ea2b2b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Left Node (Red) -->
+    <circle cx="12" cy="44" r="4" fill="#ea2b2b"/>
+    
+    <!-- Right Node (Red) -->
+    <circle cx="52" cy="44" r="4" fill="#ea2b2b"/>
+    
+    <!-- The Core / Eye (White - Pulsing Center) -->
+    <circle cx="32" cy="18" r="5" fill="white"/>
+</svg>

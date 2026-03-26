@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex justify-center items-center min-h-[75vh]">
+    <div class="glass-panel rounded-3xl p-8 md:p-12 w-full max-w-md relative group">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
+        
+        <h2 class="font-display text-3xl mb-2 text-white">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+            REGISTER
+        </h2>
+        <p class="font-mono text-xs text-gray-400 mb-8 border-b border-glassBorder pb-4">Register to access NeoArc Nodes..</p>
+
+        <form action="{{ url_for('register') }}" method="POST" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="font-display text-sm text-gray-300 block mb-2">FULL NAME</label>
+                    <input type="text" name="full_name" required placeholder="John Doe" class="w-full bg-black/40 border border-glassBorder rounded-2xl px-4 py-3 text-white font-mono focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all">
+                </div>
+                
+                <div>
+                    <label class="font-display text-sm text-gray-300 block mb-2">Username</label>
+                    <input type="text" name="username" required 
+                        class="w-full bg-black/40 border border-glassBorder rounded-2xl px-4 py-3 text-white font-mono focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all">
+                </div>
+                <div>
+                    <label class="font-display text-sm text-gray-300 block mb-2">SECURE EMAIL</label>
+                    <input type="email" name="email" required placeholder="node@matrix.com"
+                       class="w-full bg-black/40 border border-glassBorder rounded-2xl px-4 py-3 text-white font-mono focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all">
+                </div>
+                <div>
+                    <label class="font-display text-sm text-gray-300 block mb-2">Password</label>
+                    <input type="password" name="password" required 
+                        class="w-full bg-black/40 border border-glassBorder rounded-2xl px-4 py-3 text-white font-mono focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all">
+                </div>
+            </div>
+            <button type="submit" class="w-full border border-white text-white font-display text-lg py-3 rounded-full hover:bg-white hover:text-black transition-all shadow-lg mt-4 flex justify-center items-center gap-2 group">
+                <!-- Node/Register Icon -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                </svg>
+                REGISTER
+            </button>
+        
+        </form>
+    </div>
+</div>
+{% endblock %}

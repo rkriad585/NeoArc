@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex flex-col justify-center items-center min-h-[75vh] text-center">
+    <!-- Big Error Code -->
+    <h1 class="font-display text-9xl text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-600 mb-4 opacity-80 tracking-tighter">
+        {{ code }}
+    </h1>
+    
+    <!-- Glitchy Error Name -->
+    <div class="inline-block bg-nothingRed text-white font-mono text-sm px-4 py-1 rounded-full mb-6 animate-pulse">
+        ERROR_CODE :: {{ message }}
+    </div>
+    
+    <!-- Subtext -->
+    <p class="font-mono text-gray-400 max-w-md mb-10 leading-relaxed">
+        {{ subtext }}
+    </p>
+    
+    <!-- Return to safety -->
+    <a href="{{ url_for('index') }}" class="font-display text-lg border border-glassBorder px-8 py-3 rounded-full hover:bg-white hover:text-black transition-all shadow-lg flex items-center gap-3 group">
+        <svg class="w-5 h-5 text-gray-400 group-hover:text-black transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Return Dashboard
+    </a>
+</div>
+{% endblock %}

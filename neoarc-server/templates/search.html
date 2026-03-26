@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    
+    <!-- Header -->
+    <div class="mb-8 border-b border-glassBorder pb-4 flex justify-between items-end">
+        <div>
+            <h2 class="font-display text-3xl text-white">GLOBAL NODE SEARCH</h2>
+            
+        </div>
+        <div class="font-mono text-xs text-nothingRed">{{ results|length }} NODES FOUND</div>
+    </div>
+
+    <!-- Search Bar for Mobile/Result Page -->
+    <form action="{{ url_for('search') }}" method="GET" class="mb-10 md:hidden">
+        <div class="relative">
+            <input type="text" name="q" value="{{ query }}" placeholder="SEARCH_GLOBAL_NODES..." 
+                   class="w-full bg-black/40 border border-glassBorder rounded-xl py-3 pl-10 pr-4 text-white font-mono focus:outline-none focus:border-nothingRed">
+            <svg class="w-5 h-5 text-gray-500 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+    </form>
+
+    {% if not results and query %}
+        <div class="text-center py-20 opacity-50">
+            <h3 class="font-display text-2xl text-white">NO_DATA_FOUND</h3>
+            <p class="font-mono text-sm text-gray-500">Try a defferent keyword..</p>
+        </div>
+    {% endif %}
+
+    <!-- Results Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for alias in results %}
+        <a href="{{ url_for('view_alias', alias_name=alias.alias_name) }}" class="glass-panel rounded-3xl p-6 hover:border-nothingRed/50 transition-all group relative overflow-hidden block">
+            <!-- Hover Glow -->
+            <div class="absolute inset-0 bg-nothingRed/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="font-display text-xl text-white group-hover:text-nothingRed transition-colors">{{ alias.alias_name }}</h4>
+                    <span class="text-[10px] font-mono border border-glassBorder px-2 py-1 rounded-full uppercase text-gray-400 bg-black/50">
+                        {{ alias.exec_type if alias.exec_type else 'SHELL' }}
+                    </span>
+                </div>
+
+                <!-- Code Preview (Truncated) -->
+                <div class="bg-black/60 rounded-xl p-3 mb-4 font-mono text-xs text-gray-400 h-16 overflow-hidden relative">
+                    {{ alias.command }}
+                    <div class="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-black to-transparent"></div>
+                </div>
+
+                <!-- Creator Info -->
+                <div class="flex items-center gap-2 border-t border-glassBorder/50 pt-3">
+                    <div class="w-6 h-6 rounded-full bg-gray-800 overflow-hidden">
+                        {% if alias.profile_pic %}
+                            <img src="{{ url_for('static', filename='uploads/' + alias.profile_pic) }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="w-full h-full bg-gray-700"></div>
+                        {% endif %}
+                    </div>
+                    <span class="font-mono text-xs text-gray-400">@{{ alias.username }}</span>
+                    <span class="ml-auto font-display text-xs text-white group-hover:translate-x-1 transition-transform">VIEW NODE -></span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
