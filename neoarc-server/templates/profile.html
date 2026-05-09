@@ -21,7 +21,8 @@
         <div class="md:col-span-2 glass-panel rounded-3xl p-8">
             <h3 class="font-display text-xl mb-6 text-white border-b border-glassBorder pb-2">UPDATE</h3>
             
-            <form action="{{ url_for('profile') }}" enctype="multipart/form-data" method="POST" class="space-y-6">
+            <form action="{{ url_for('profile.profile') }}" enctype="multipart/form-data" method="POST" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                     <label class="font-mono text-xs text-gray-400 block mb-2">AVATAR UPLOAD</label>
                     <label class="flex items-center gap-3 w-full bg-black/50 border border-glassBorder border-dashed rounded-2xl px-4 py-3 cursor-pointer hover:border-nothingRed transition-all group">

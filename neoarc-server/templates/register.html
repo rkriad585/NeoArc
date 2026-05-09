@@ -10,7 +10,8 @@
         </h2>
         <p class="font-mono text-xs text-gray-400 mb-8 border-b border-glassBorder pb-4">Register to access NeoArc Nodes..</p>
 
-        <form action="{{ url_for('register') }}" method="POST" class="space-y-6">
+        <form action="{{ url_for('auth.register') }}" method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                     <label class="font-display text-sm text-gray-300 block mb-2">FULL NAME</label>

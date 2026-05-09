@@ -1,140 +1,142 @@
-# NeoArc: Usage Guide
+# NeoArc CLI Usage Guide
 
-This guide covers how to interact with the NeoArc system, both through its web interface (the "Execution Grid") and the command-line interface (the "Client").
+## Server Configuration
 
-## 1. Web Server (The Matrix) Usage
-
-The web server provides a user-friendly interface for managing your aliases, discovering public ones, and accessing administrative features.
-
-### 1.1. Accessing the Web UI
-
-Open your web browser and navigate to the server's address (e.g., `http://localhost:59248`).
-
-### 1.2. User Authentication
-
-*   **Registration (`/register`):**
-    *   Click on "Register here" from the login page or directly go to `/register`.
-    *   Fill in your `Full Name`, `Username`, `Secure Email`, and `Password`.
-    *   Click "REGISTER" to create your account.
-*   **Login (`/login`):**
-    *   Enter your `Username` and `Password` on the login page.
-    *   Click "Login" to access your dashboard.
-*   **Logout (`/logout`):**
-    *   Click the "Logout" button (usually in the navigation bar) to end your session.
-
-### 1.3. Dashboard (`/dashboard`)
-
-This is your personal "Execution Grid" where you manage your aliases.
-
-*   **Creating a New Alias:**
-    1.  In the "Compile" section (left column), fill in:
-        *   **Alias Name:** A unique, short name for your command (e.g., `sys_info`, `update_packages`).
-        *   **Execution Type (Optional):** Select the language/shell for your command (e.g., `BASH`, `POWERSHELL`, `PYTHON`, `GOLANG`). If left as `AUTO`, the CLI will attempt to infer the type or default to `sh`/`cmd`.
-        *   **Code / Command:** Paste or type your script/command here.
-    2.  Click the "Compile" button to save your alias.
-*   **Viewing Existing Aliases:**
-    *   Your created aliases are listed in the "Active Nodes" section (right column).
-    *   Each alias card shows its name, execution type, and a code preview.
-*   **Copying Alias Command for CLI:**
-    *   Click the copy icon on an alias card to copy the `neoarc <alias_name>` command to your clipboard.
-*   **Deleting an Alias:**
-    *   Click the trash can icon on an alias card. You will be prompted to confirm deletion.
-
-### 1.4. Profile Management (`/profile`)
-
-Update your personal information and avatar.
-
-*   **Avatar Upload:**
-    *   Click "CLICK TO SELECT IMAGE..." to upload a profile picture.
-*   **Update Details:**
-    *   Modify your `FULL NAME` and `SECURE EMAIL`. Your `USERNAME` is immutable.
-    *   Click "Update" to save changes.
-*   **System Stats:** View your active alias count and system status.
-
-### 1.5. Global Node Search (`/search`)
-
-Discover public aliases created by other users.
-
-*   **Search:** Enter keywords in the search bar to find aliases.
-*   **View Node:** Click on any alias in the search results to view its full code and creator details.
-
-### 1.6. Node Inspector (`/view/<alias_name>`)
-
-Provides a detailed view of a specific alias, including syntax-highlighted code.
-
-*   **Copy Command:** Use the "Copy" button to get the `neoarc <alias_name>` command for CLI execution.
-
-## 2. CLI Tool (The Client) Usage
-
-The NeoArc CLI is your gateway to executing aliases from your terminal.
-
-### 2.1. Configuring the Client
-
-Before you can run any aliases, you must tell the CLI where your NeoArc server is located.
+Before running aliases, point the CLI at your NeoArc server:
 
 ```bash
 neoarc config http://localhost:59248
-# Or your public IP/Domain:
-# neoarc config http://192.168.1.100:59248
-# neoarc config https://your.domain.com
 ```
-This command saves the server URL to a local configuration file (`config.json` in `~/.neoarc` or `%APPDATA%\neoarc`).
 
-### 2.2. Executing Aliases
+| Command | Description |
+|---------|-------------|
+| `neoarc config <server-url>` | Set server URL (default: `http://localhost:59248`) |
+| `neoarc config insecure` | Enable TLS skip-verify |
+| `neoarc config secure` | Disable TLS skip-verify |
+| `neoarc config-token <token>` | Set API token in local config file |
+| `neoarc completion <shell>` | Generate shell completion script |
+| `neoarc help` | Show help |
 
-Once configured, you can run any alias you've created or found on the web server.
+## Alias Commands
 
-*   **Run an Alias:**
-    ```bash
-    neoarc run <alias_name>
-    # Shorthand:
-    neoarc <alias_name>
-    ```
-    Example:
-    ```bash
-    neoarc sys_info
-    ```
-    The CLI will fetch the command from the server and execute it on your local machine.
+| Command | Description |
+|---------|-------------|
+| `neoarc get <alias> [args...]` | Print alias code without executing |
+| `neoarc run <alias> [args...]` | Fetch and execute alias with args |
+| `neoarc <alias> [args...]` | Shorthand for `run` |
 
-*   **View Alias Code (without running):**
-    To inspect the code of an alias before executing it:
-    ```bash
-    neoarc get <alias_name>
-    ```
-    This will print the command's code and its execution type to your terminal.
+### Flags
 
-### 2.3. Help Menu
+Flags must be placed before the alias name:
 
-To see a list of available CLI commands:
+| Flag | Description |
+|------|-------------|
+| `--dry-run <alias>` | Print code without executing |
+| `--yes <alias>` | Skip trust confirmation prompt |
+
+### Argument Passing
+
+All arguments after the alias name are forwarded to the executed script:
+
 ```bash
-neoarc help
+neoarc run myalias arg1 arg2
+neoarc myalias --flag value
 ```
 
-## 3. Admin Panel Usage
+How args are accessed depends on the exec type:
 
-The Super Admin panel provides powerful moderation capabilities for the NeoArc platform.
+| Type | Access |
+|------|--------|
+| bash/sh | `$1`, `$2`, `$@` |
+| powershell | `$args[0]`, `$args[1]` |
+| python | `sys.argv[1]`, `sys.argv[2]` |
+| cmd | `%1`, `%2` |
+| go | `os.Args[1]`, `os.Args[2]` |
 
-### 3.1. Accessing the Admin Panel
+### Shell Completion
 
-Navigate to `http://localhost:59248/admin/login` in your web browser.
+Generate and install tab completion for your shell:
 
-### 3.2. Admin Login
+```bash
+# Bash
+neoarc completion bash > /etc/bash_completion.d/neoarc
 
-*   Use the `email` and `password` configured in `neoarc-server/config.py` under `ADMIN_CREDENTIALS`.
-*   Click "ACCESS CONTROL" to log in.
+# Zsh
+neoarc completion zsh > /usr/local/share/zsh/site-functions/_neoarc
 
-### 3.3. Admin Dashboard (`/admin/`)
+# PowerShell
+neoarc completion powershell >> $PROFILE
+```
 
-*   **User List:** View all registered users, their email, the number of aliases they've created, and their current status (Active/Blocked).
-*   **Actions per User:**
-    *   **View:** Click "View" to see a user's detailed profile and a list of all their aliases.
-    *   **Block/Unblock:** Click "Block" to prevent a user from logging in. The button will change to "Unblock" for blocked users.
-    *   **Delete:** Click "Delete" to permanently remove a user and all their associated aliases from the database. **Use with caution!**
+Examples:
 
-### 3.4. View User Details (`/admin/user/<user_id>`)
+```bash
+neoarc get sys_info
+neoarc run sys_info
+neoarc sys_info
+neoarc --dry-run sys_info
+neoarc --yes sys_info
+neoarc completion bash
+```
 
-*   **User Information:** See the user's full name, username, email, and profile picture.
-*   **User Aliases:** A table listing all aliases created by that specific user, including alias name, type, and a command preview.
-*   **Delete User Alias:** From this view, you can delete individual aliases created by the user.
+## Trust-on-First-Use
 
-Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan
+The first time you execute an alias, you are prompted to confirm:
+
+```
+Execute alias 'sys_info'? This will run code from the remote server. [y/N]:
+```
+
+Answering `y` or `yes` saves the alias to `trusted.json` so future runs proceed
+without prompting. Answering anything else cancels execution.
+
+## Caching
+
+Alias responses are cached locally for 30 seconds. Subsequent requests include
+an `If-None-Match` header with the previous `ETag`. If the server responds
+`304 Not Modified`, the cached value is used.
+
+Cache file: `trusted.json` (same directory as `config.json`)
+
+## Error Handling
+
+Connection errors include a hint to check the configured server URL:
+
+```
+Error: connection failed: <underlying error>
+Hint: Check server URL with: neoarc config <url> (default: http://localhost:59248)
+```
+
+Authentication failures (401/403) show:
+
+```
+Error: API authentication failed. Use 'neoarc config-token <token>' or rebuild the binary.
+```
+
+## Execution Types
+
+The CLI infers how to execute code based on the alias's `exec_type` field:
+
+| Type | Runner |
+|------|--------|
+| `bash` | `bash <tempfile>` |
+| `powershell` | `powershell -ExecutionPolicy Bypass -File <tempfile>` |
+| `python` | `python <tempfile>` |
+| `go` | `go run <tempfile>` (auto-prepends `package main` if missing) |
+| default (Windows) | `cmd /C <tempfile>` |
+| default (Linux/macOS) | `sh <tempfile>` |
+
+## Configuration File
+
+- **Windows:** `%APPDATA%\neoarc\config.json`
+- **Linux / macOS:** `~/.neoarc/config.json`
+
+Example config:
+
+```json
+{
+  "server_url": "http://localhost:59248",
+  "api_token": "your-token-here",
+  "insecure_tls": false
+}
+```

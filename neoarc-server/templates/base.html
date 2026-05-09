@@ -45,6 +45,12 @@
             font-size: 0.8rem;
             line-height: 1.4;
         }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+        }
             
         /* Elegant scrollbars for code blocks */
         pre::-webkit-scrollbar { height: 6px; width: 6px; }
@@ -81,7 +87,7 @@
         <!-- SEARCH BAR (CENTER) -->
         {% if session.get('user_id') %}
         <div class="absolute left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 hidden md:block">
-            <form action="{{ url_for('search') }}" method="GET" class="relative group">
+            <form action="{{ url_for('alias.search') }}" method="GET" class="relative group">
                 <input type="text" name="q" placeholder="Search Global Nods..." 
                        class="w-full bg-black/40 border border-glassBorder rounded-full py-2 pl-10 pr-4 text-sm font-mono text-white focus:outline-none focus:border-nothingRed focus:ring-1 focus:ring-nothingRed transition-all">
                 <svg class="w-4 h-4 text-gray-500 absolute left-3 top-2.5 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,14 +101,14 @@
             {% if session.get('user_id') %}
 
                 <!-- 1. MOBILE SEARCH ICON (Hidden on Desktop 'md:hidden') -->
-                <a href="{{ url_for('search') }}" class="md:hidden p-2 text-gray-400 hover:text-white transition-colors">
+                <a href="{{ url_for('alias.search') }}" class="md:hidden p-2 text-gray-400 hover:text-white transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                 </a>
 
                 <!-- USER INFO -->
-                <a href="{{ url_for('profile') }}" class="flex items-center gap-3 font-mono text-sm border border-transparent md:border-glassBorder hover:border-nothingRed bg-transparent md:bg-black/30 hover:bg-black/60 p-1 md:px-4 md:py-1.5 rounded-full transition-all cursor-pointer group">
+                <a href="{{ url_for('profile.profile') }}" class="flex items-center gap-3 font-mono text-sm border border-transparent md:border-glassBorder hover:border-nothingRed bg-transparent md:bg-black/30 hover:bg-black/60 p-1 md:px-4 md:py-1.5 rounded-full transition-all cursor-pointer group">
                     <!-- Avatar Image or Fallback Icon -->
                     <div class="w-8 h-8 rounded-full bg-black/50 border border-gray-600 group-hover:border-nothingRed overflow-hidden flex items-center justify-center transition-all">
                         {% if session.get('profile_pic') %}
@@ -115,7 +121,7 @@
                     </div>
                     <span class="opacity-90 group-hover:text-white">{{ session.get('username') | upper }}</span>
                 </a>
-                <a href="{{ url_for('logout') }}" class="font-display text-sm border border-glassBorder px-5 py-2 rounded-full hover:bg-nothingRed hover:text-white hover:border-nothingRed transition-all flex items-center gap-2 group">
+                <a href="{{ url_for('auth.logout') }}" class="font-display text-sm border border-glassBorder px-5 py-2 rounded-full hover:bg-nothingRed hover:text-white hover:border-nothingRed transition-all flex items-center gap-2 group">
                     <!-- Logout Icon -->
                     <svg class="w-4 h-4 text-gray-400 group-hover:text-nothingRed transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
@@ -130,7 +136,7 @@
                     </svg>
                     LOGIN
                 </a>
-                <a href="{{ url_for('register') }}" class="font-display text-sm bg-white text-black px-5 py-2 rounded-full hover:bg-nothingRed hover:text-white transition-all flex items-center gap-2 group">
+                <a href="{{ url_for('auth.register') }}" class="font-display text-sm bg-white text-black px-5 py-2 rounded-full hover:bg-nothingRed hover:text-white transition-all flex items-center gap-2 group">
                     <!-- Register Icon -->
                     <svg class="w-4 h-4 text-black group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
@@ -170,19 +176,11 @@
         // Auto dismiss flash messages
         setTimeout(() => { $('#flash-container').fadeOut('slow'); }, 4000);
 
-        // Initialize CodeMirror Input Editor
-        var editor = CodeMirror.fromTextArea(document.getElementById("command_input"), {
-            lineNumbers: true,
-            theme: "material-ocean",
-            mode: "shell",
-            matchBrackets: true,
-            viewportMargin: Infinity
+        // Disable submit buttons on form submit to prevent double-submission
+        $('form').on('submit', function() {
+            $(this).find('button[type="submit"]').prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
         });
 
-        // Save CodeMirror content to textarea before form submission
-        $('#aliasForm').on('submit', function() {
-            editor.save();
-        });
         // Bulletproof Copy to Clipboard Logic (Works on HTTP IPs and HTTPS)
         function copyCmd(text) {
             // UI Notification Function

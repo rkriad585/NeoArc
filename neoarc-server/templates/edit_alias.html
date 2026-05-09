@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto mt-6">
+    <div class="flex items-center gap-4 mb-8">
+        <a href="{{ url_for('alias.dashboard') }}" class="font-display text-sm border border-glassBorder px-4 py-2 rounded-full hover:border-nothingRed hover:text-nothingRed transition-all">
+            &larr; BACK
+        </a>
+        <h2 class="font-display text-3xl text-white">EDIT NODE</h2>
+    </div>
+
+    <div class="glass-panel rounded-3xl p-8">
+        <form action="{{ url_for('alias.edit_alias', id=alias.id) }}" method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div>
+                <label class="font-mono text-xs text-gray-400 block mb-2">Alias Name</label>
+                <input type="text" name="alias_name" value="{{ alias.alias_name }}" required 
+                       class="w-full bg-black/50 border border-glassBorder rounded-xl px-4 py-3 text-white font-mono focus:outline-none focus:border-nothingRed transition-all">
+            </div>
+            
+            <div>
+                <label class="font-mono text-xs text-gray-400 block mb-2">Execution Type</label>
+                <div class="relative">
+                    <select name="exec_type" class="w-full bg-black/50 border border-glassBorder rounded-xl px-4 py-3 text-white font-mono appearance-none focus:outline-none focus:border-nothingRed transition-all cursor-pointer">
+                        <option value="" {% if not alias.exec_type %}selected{% endif %}>AUTO</option>
+                        <option value="bash" {% if alias.exec_type == 'bash' %}selected{% endif %}>BASH (.sh)</option>
+                        <option value="powershell" {% if alias.exec_type == 'powershell' %}selected{% endif %}>POWERSHELL (.ps1)</option>
+                        <option value="cmd" {% if alias.exec_type == 'cmd' %}selected{% endif %}>WINDOWS CMD (.bat)</option>
+                        <option value="python" {% if alias.exec_type == 'python' %}selected{% endif %}>PYTHON (.py)</option>
+                        <option value="go" {% if alias.exec_type == 'go' %}selected{% endif %}>GOLANG (.go)</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-nothingRed font-display">v</div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="font-mono text-xs text-gray-400 block mb-2">Code / Command</label>
+                <textarea id="command_input" name="command" rows="12" required spellcheck="false"
+                          class="w-full bg-[#181a1f]/80 border border-glassBorder rounded-xl px-4 py-3 text-gray-300 font-mono text-sm leading-relaxed focus:outline-none focus:border-nothingRed transition-all resize-y shadow-inner">{{ alias.command }}</textarea>
+            </div>
+            
+            <div class="flex gap-4">
+                <button type="submit" class="flex-1 bg-nothingRed text-white font-display text-lg py-3 rounded-2xl hover:bg-red-700 transition-all shadow-lg hover:shadow-nothingRed/40 flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Update Node
+                </button>
+                <a href="{{ url_for('alias.dashboard') }}" class="px-8 py-3 border border-glassBorder rounded-2xl font-display text-gray-400 hover:text-white hover:border-white transition-all">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,18 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" class="dark">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoArc Admin</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
-
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@300;400;600&family=Fira+Code&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['DotGothic16', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        nothingRed: '#ea2b2b',
+                        glass: 'rgba(255, 255, 255, 0.03)',
+                        glassBorder: 'rgba(255, 255, 255, 0.08)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
-    <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
-        <h2 class="text-2xl font-bold mb-6 text-center text-red-500">SUPER ADMIN</h2>
+<body class="bg-black text-white font-sans flex items-center justify-center min-h-screen">
+    <div class="glass-panel rounded-3xl p-8 w-96 relative">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-nothingRed to-transparent opacity-50"></div>
+        <h2 class="font-display text-2xl mb-6 text-center text-nothingRed tracking-wider">SUPER ADMIN</h2>
         <form method="POST">
-            <input type="email" name="email" placeholder="Admin Email" class="w-full mb-4 p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
-            <input type="password" name="password" placeholder="Password" class="w-full mb-6 p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:border-red-500">
-            <button class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded">ACCESS CONTROL</button>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-4">
+                <label class="font-mono text-xs text-gray-400 block mb-2">EMAIL</label>
+                <input type="email" name="email" placeholder="admin@neoarc.local" 
+                       class="w-full bg-black/40 border border-glassBorder rounded-xl px-4 py-3 text-white font-mono focus:outline-none focus:border-nothingRed transition-all">
+            </div>
+            <div class="mb-6">
+                <label class="font-mono text-xs text-gray-400 block mb-2">PASSWORD</label>
+                <input type="password" name="password" placeholder="Enter password" 
+                       class="w-full bg-black/40 border border-glassBorder rounded-xl px-4 py-3 text-white font-mono focus:outline-none focus:border-nothingRed transition-all">
+            </div>
+            <button class="w-full bg-nothingRed text-white font-display text-lg py-3 rounded-2xl hover:bg-red-700 transition-all shadow-lg hover:shadow-nothingRed/40">ACCESS CONTROL</button>
         </form>
     </div>
 </body>

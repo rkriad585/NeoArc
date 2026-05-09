@@ -1,0 +1,542 @@
+package cli
+
+import (
+	"bufio"
+	"crypto/sha256"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+)
+
+var (
+	APIToken  string
+	Version   string
+	BuildTime string
+	Commit    string
+)
+
+type Config struct {
+	ServerURL   string `json:"server_url"`
+	APIToken    string `json:"api_token,omitempty"`
+	InsecureTLS bool   `json:"insecure_tls,omitempty"`
+}
+
+type AliasResponse struct {
+	Success  bool   `json:"success"`
+	Alias    string `json:"alias"`
+	Command  string `json:"command"`
+	ExecType string `json:"exec_type"`
+	Message  string `json:"message"`
+}
+
+type CacheEntry struct {
+	Command  string `json:"command"`
+	ExecType string `json:"exec_type"`
+	ETag     string `json:"etag"`
+	Time     int64  `json:"time"`
+}
+
+type AliasCache struct {
+	Entries map[string]CacheEntry `json:"entries"`
+}
+
+type TrustStore struct {
+	Trusted map[string]int64 `json:"trusted"`
+}
+
+func ConfigDir() string {
+	var configDir string
+	if runtime.GOOS == "windows" {
+		configDir = filepath.Join(os.Getenv("APPDATA"), "neoarc")
+	} else {
+		homeDir, _ := os.UserHomeDir()
+		configDir = filepath.Join(homeDir, ".neoarc")
+	}
+	os.MkdirAll(configDir, 0755)
+	return configDir
+}
+
+func ConfigPath() string {
+	return filepath.Join(ConfigDir(), "config.json")
+}
+
+func CachePath() string {
+	return filepath.Join(ConfigDir(), "alias_cache.json")
+}
+
+func TrustPath() string {
+	return filepath.Join(ConfigDir(), "trusted.json")
+}
+
+func LoadConfig() Config {
+	path := ConfigPath()
+	file, err := os.ReadFile(path)
+	if err != nil {
+		defaultCfg := Config{ServerURL: "http://localhost:59248"}
+		SaveConfig(defaultCfg)
+		return defaultCfg
+	}
+	var cfg Config
+	json.Unmarshal(file, &cfg)
+	return cfg
+}
+
+func SaveConfig(cfg Config) {
+	data, _ := json.MarshalIndent(cfg, "", "  ")
+	os.WriteFile(ConfigPath(), data, 0644)
+}
+
+func LoadCache() AliasCache {
+	path := CachePath()
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return AliasCache{Entries: make(map[string]CacheEntry)}
+	}
+	var c AliasCache
+	json.Unmarshal(file, &c)
+	if c.Entries == nil {
+		c.Entries = make(map[string]CacheEntry)
+	}
+	return c
+}
+
+func SaveCache(c AliasCache) {
+	data, _ := json.MarshalIndent(c, "", "  ")
+	os.WriteFile(CachePath(), data, 0644)
+}
+
+func LoadTrusted() TrustStore {
+	path := TrustPath()
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return TrustStore{Trusted: make(map[string]int64)}
+	}
+	var t TrustStore
+	json.Unmarshal(file, &t)
+	if t.Trusted == nil {
+		t.Trusted = make(map[string]int64)
+	}
+	return t
+}
+
+func SaveTrusted(t TrustStore) {
+	data, _ := json.MarshalIndent(t, "", "  ")
+	os.WriteFile(TrustPath(), data, 0644)
+}
+
+func ResolveAPIToken(cfg Config) string {
+	if cfg.APIToken != "" {
+		return cfg.APIToken
+	}
+	return APIToken
+}
+
+func NewHTTPClient(cfg Config) *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: cfg.InsecureTLS},
+	}
+	return &http.Client{Timeout: 15 * time.Second, Transport: tr}
+}
+
+func ConfirmExecution(aliasName string) bool {
+	trusted := LoadTrusted()
+	if _, ok := trusted.Trusted[aliasName]; ok {
+		return true
+	}
+
+	fmt.Printf("Execute alias '%s'? This will run code from the remote server. [y/N]: ", aliasName)
+	reader := bufio.NewReader(os.Stdin)
+	line, _ := reader.ReadString('\n')
+	line = strings.TrimSpace(strings.ToLower(line))
+
+	if line == "y" || line == "yes" {
+		trusted.Trusted[aliasName] = time.Now().Unix()
+		SaveTrusted(trusted)
+		return true
+	}
+	return false
+}
+
+func FetchAlias(aliasName string) (*AliasResponse, error) {
+	cfg := LoadConfig()
+	cache := LoadCache()
+
+	now := time.Now().Unix()
+	entry, found := cache.Entries[aliasName]
+	if found && (now-entry.Time) < 30 {
+		return &AliasResponse{
+			Success:  true,
+			Alias:    aliasName,
+			Command:  entry.Command,
+			ExecType: entry.ExecType,
+		}, nil
+	}
+
+	client := NewHTTPClient(cfg)
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/alias/%s", cfg.ServerURL, aliasName), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	token := ResolveAPIToken(cfg)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	if found && entry.ETag != "" {
+		req.Header.Set("If-None-Match", entry.ETag)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("connection failed: %w\nHint: Check server URL with: neoarc config <url> (default: http://localhost:59248)", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 304 {
+		return &AliasResponse{
+			Success:  true,
+			Alias:    aliasName,
+			Command:  entry.Command,
+			ExecType: entry.ExecType,
+		}, nil
+	}
+
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, fmt.Errorf("failed to read response: %w", readErr)
+	}
+
+	var aliasResp AliasResponse
+	if err := json.Unmarshal(body, &aliasResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if resp.StatusCode == 401 || resp.StatusCode == 403 {
+		aliasResp.Success = false
+		aliasResp.Message = "API authentication failed. Use 'neoarc config-token <token>' or rebuild the binary."
+	}
+
+	if aliasResp.Success {
+		etag := resp.Header.Get("ETag")
+		if etag == "" {
+			h := sha256.Sum256(body)
+			etag = fmt.Sprintf("%x", h[:16])
+		}
+		cache.Entries[aliasName] = CacheEntry{
+			Command:  aliasResp.Command,
+			ExecType: aliasResp.ExecType,
+			ETag:     etag,
+			Time:     now,
+		}
+		SaveCache(cache)
+	}
+
+	return &aliasResp, nil
+}
+
+func ExecuteCommand(cmdStr, execType string, aliasArgs []string) int {
+	var cmd *exec.Cmd
+
+	ext := ".sh"
+	if execType == "powershell" {
+		ext = ".ps1"
+	} else if execType == "python" {
+		ext = ".py"
+	} else if execType == "go" {
+		ext = ".go"
+	} else if runtime.GOOS == "windows" && (execType == "cmd" || execType == "") {
+		ext = ".bat"
+	}
+
+	tmpFile, err := os.CreateTemp("", "neoarc-*"+ext)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error creating temp script:", err)
+		return 1
+	}
+
+	if execType == "go" {
+		if len(cmdStr) < 12 || cmdStr[:12] != "package main" {
+			if _, err := tmpFile.WriteString("package main\n\n"); err != nil {
+				fmt.Fprintln(os.Stderr, "Error writing temp script:", err)
+				tmpFile.Close()
+				os.Remove(tmpFile.Name())
+				return 1
+			}
+		}
+	}
+
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(cmdStr); err != nil {
+		fmt.Fprintln(os.Stderr, "Error writing temp script:", err)
+		tmpFile.Close()
+		return 1
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error closing temp script:", err)
+		return 1
+	}
+
+	switch execType {
+	case "bash":
+		args := []string{tmpFile.Name()}
+		args = append(args, aliasArgs...)
+		cmd = exec.Command("bash", args...)
+	case "powershell":
+		args := []string{"-ExecutionPolicy", "Bypass", "-File", tmpFile.Name()}
+		args = append(args, aliasArgs...)
+		cmd = exec.Command("powershell", args...)
+	case "python":
+		args := []string{tmpFile.Name()}
+		args = append(args, aliasArgs...)
+		cmd = exec.Command("python", args...)
+	case "go":
+		args := []string{"run", tmpFile.Name()}
+		args = append(args, aliasArgs...)
+		cmd = exec.Command("go", args...)
+	default:
+		if runtime.GOOS == "windows" {
+			args := []string{"/C", tmpFile.Name()}
+			args = append(args, aliasArgs...)
+			cmd = exec.Command("cmd", args...)
+		} else {
+			args := []string{tmpFile.Name()}
+			args = append(args, aliasArgs...)
+			cmd = exec.Command("sh", args...)
+		}
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode()
+		}
+		fmt.Fprintln(os.Stderr, "Execution error:", err)
+		return 1
+	}
+	return 0
+}
+
+type AliasesListResponse struct {
+	Success bool     `json:"success"`
+	Aliases []string `json:"aliases"`
+	Message string   `json:"message"`
+}
+
+func FetchAliases() ([]string, error) {
+	cfg := LoadConfig()
+	client := NewHTTPClient(cfg)
+
+	req, err := http.NewRequest("GET", cfg.ServerURL+"/api/aliases", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	token := ResolveAPIToken(cfg)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("connection failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, fmt.Errorf("failed to read response: %w", readErr)
+	}
+
+	var listResp AliasesListResponse
+	if err := json.Unmarshal(body, &listResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if !listResp.Success {
+		return nil, fmt.Errorf("server error: %s", listResp.Message)
+	}
+
+	return listResp.Aliases, nil
+}
+
+func ShowHelp() {
+	fmt.Println(`NeoArc - Cross-Platform Alias Executor
+Usage:
+  neoarc get <alias> [args...]       : Print the code for the alias
+  neoarc run <alias> [args...]       : Run the alias command with args
+  neoarc <alias> [args...]           : Run the alias command (shorthand)
+  neoarc config <server-url>         : Set the NeoArc Web Server URL
+  neoarc config-token <tok>          : Set the API authentication token
+  neoarc config insecure             : Enable insecure TLS (skip certificate verify)
+  neoarc config secure               : Disable insecure TLS (default, verify certs)
+  neoarc help                        : Show help menu
+  neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
+
+Options (place before <alias>):
+  --dry-run                          : Print the alias code without executing
+  --yes                              : Skip execution confirmation prompt
+
+Arguments after <alias> are passed through to the executed command.
+  bash/sh    : accessible via $1, $2, $@
+  powershell : accessible via $args[0], $args[1]
+  python     : accessible via sys.argv[1], sys.argv[2]
+  cmd        : accessible via %1, %2`)
+}
+
+func Run(args []string) int {
+	if len(args) < 2 {
+		ShowHelp()
+		return 0
+	}
+
+	if args[1] == "help" {
+		ShowHelp()
+		return 0
+	}
+
+	if args[1] == "config" && len(args) >= 3 {
+		if args[2] == "insecure" {
+			cfg := LoadConfig()
+			cfg.InsecureTLS = true
+			SaveConfig(cfg)
+			fmt.Println("Insecure TLS enabled.")
+			return 0
+		}
+		if args[2] == "secure" {
+			cfg := LoadConfig()
+			cfg.InsecureTLS = false
+			SaveConfig(cfg)
+			fmt.Println("Insecure TLS disabled.")
+			return 0
+		}
+		if len(args) == 3 {
+			cfg := LoadConfig()
+			cfg.ServerURL = args[2]
+			SaveConfig(cfg)
+			fmt.Println("Config updated! Server URL:", cfg.ServerURL)
+			return 0
+		}
+	}
+
+	if args[1] == "config-token" && len(args) == 3 {
+		cfg := LoadConfig()
+		cfg.APIToken = args[2]
+		SaveConfig(cfg)
+		fmt.Println("API token updated.")
+		return 0
+	}
+
+	if args[1] == "completion" {
+		if len(args) < 3 {
+			fmt.Println("Usage: neoarc completion <shell>\nSupported shells: bash, zsh, powershell")
+			return 0
+		}
+		aliases, _ := FetchAliases()
+		if aliases == nil {
+			aliases = []string{}
+		}
+		return GenerateCompletion(args[2], aliases)
+	}
+
+	if args[1] == "_list_aliases" {
+		aliases, err := FetchAliases()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			return 1
+		}
+		for _, a := range aliases {
+			fmt.Println(a)
+		}
+		return 0
+	}
+
+	dryRun := false
+	yesMode := false
+	argIdx := 1
+
+	for argIdx < len(args) && args[argIdx][0] == '-' {
+		switch args[argIdx] {
+		case "--dry-run":
+			dryRun = true
+		case "--yes":
+			yesMode = true
+		default:
+			fmt.Fprintln(os.Stderr, "Unknown flag:", args[argIdx])
+			return 1
+		}
+		argIdx++
+	}
+
+	if argIdx >= len(args) {
+		ShowHelp()
+		return 0
+	}
+
+	cmd := args[argIdx]
+	argIdx++
+
+	var aliasName string
+	var aliasArgs []string
+	isGet := false
+
+	if cmd == "get" {
+		if argIdx >= len(args) {
+			fmt.Println("Usage: neoarc get <alias-name>")
+			return 1
+		}
+		aliasName = args[argIdx]
+		aliasArgs = args[argIdx+1:]
+		isGet = true
+	} else if cmd == "run" {
+		if argIdx >= len(args) {
+			fmt.Println("Usage: neoarc run <alias-name>")
+			return 1
+		}
+		aliasName = args[argIdx]
+		aliasArgs = args[argIdx+1:]
+	} else {
+		aliasName = cmd
+		aliasArgs = args[argIdx:]
+	}
+
+	alias, err := FetchAlias(aliasName)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		return 1
+	}
+
+	if !alias.Success {
+		fmt.Println("Error:", alias.Message)
+		return 1
+	}
+
+	if isGet || dryRun {
+		if dryRun {
+			fmt.Println("--- Dry Run ---")
+		}
+		fmt.Printf("--- NeoArc Alias: %s (%s) ---\n%s\n------------------------\n", alias.Alias, alias.ExecType, alias.Command)
+		return 0
+	}
+
+	if !yesMode && !ConfirmExecution(aliasName) {
+		fmt.Println("Execution cancelled.")
+		return 1
+	}
+
+	return ExecuteCommand(alias.Command, alias.ExecType, aliasArgs)
+}

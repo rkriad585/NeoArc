@@ -1,0 +1,27 @@
+services:
+  neoarc-server:
+    build:
+      context: ./neoarc-server
+      dockerfile: Dockerfile
+    container_name: neoarc-server
+    ports:
+      - "59248:59248"
+    volumes:
+      - neoarc-data:/app/data
+      - neoarc-uploads:/app/static/uploads
+    environment:
+      - NEOARC_SECRET_KEY=${NEOARC_SECRET_KEY:?required}
+      - NEOARC_API_TOKEN=${NEOARC_API_TOKEN:?required}
+      - NEOARC_ADMIN_EMAIL=${NEOARC_ADMIN_EMAIL:-admin@neoarc.local}
+      - NEOARC_ADMIN_PASSWORD=${NEOARC_ADMIN_PASSWORD:?required}
+      - NEOARC_DB_PATH=/app/data/neoarc.db
+      - NEOARC_UPLOAD_FOLDER=/app/static/uploads
+      - NEOARC_HOST=0.0.0.0
+      - NEOARC_PORT=59248
+      - NEOARC_DEBUG=False
+      - NEOARC_ADMIN_ROUTE=/admin
+    restart: unless-stopped
+
+volumes:
+  neoarc-data:
+  neoarc-uploads:

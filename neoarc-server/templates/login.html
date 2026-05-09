@@ -8,7 +8,8 @@
         <h2 class="font-display text-3xl mb-2 text-white">LOGIN</h2>
         <p class="font-mono text-xs text-gray-400 mb-8">Authenticate to access NeoArc Nodes..</p>
 
-        <form action="{{ url_for('login') }}" method="POST" class="space-y-6">
+        <form action="{{ url_for('auth.login') }}" method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
                 <label class="font-display text-sm text-gray-300 block mb-2">Username</label>
                 <input type="text" name="username" required 
@@ -28,8 +29,9 @@
             </button>
         </form>
         
-        <div class="mt-6 text-center font-mono text-xs text-gray-500">
-            No access node? <a href="{{ url_for('register') }}" class="text-white hover:text-nothingRed underline decoration-nothingRed underline-offset-4">Register here.</a>
+        <div class="mt-6 text-center font-mono text-xs text-gray-500 flex flex-col gap-2">
+            <a href="{{ url_for('auth.forgot_password') }}" class="text-gray-400 hover:text-nothingRed underline decoration-nothingRed underline-offset-4">Forgot password?</a>
+            <span>No access node? <a href="{{ url_for('auth.register') }}" class="text-white hover:text-nothingRed underline decoration-nothingRed underline-offset-4">Register here.</a></span>
         </div>
     </div>
 </div>

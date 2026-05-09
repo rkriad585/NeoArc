@@ -1,108 +1,80 @@
 # NeoArc Web Server Setup Guide
 
-This guide provides detailed instructions for setting up and running the NeoArc Web Server.
-
 ## Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
+- **Python 3.10+** (required by `pyproject.toml`)
+- **pip** (Python package installer)
 
-*   **Python 3.8+**: The server is built with Python Flask.
-    *   [Download Python](https://www.python.org/downloads/)
-*   **`pip` or `uv`**: Python package installer. `uv` is a faster alternative.
-    *   `pip` usually comes with Python.
-    *   [Install uv](https://astral.sh/blog/uv-the-fast-python-package-installer-and-resolver)
+## Installation
 
-## Installation Steps
-
-1.  **Clone the Repository (if you haven't already):**
-    ```bash
-    git clone https://github.com/rkriad585/neoarc-cli.git # Assuming this is the repo
-    cd neoarc-cli/neoarc-server
-    ```
-
-2.  **Navigate to the Server Directory:**
+1.  **Navigate to the Server Directory:**
     ```bash
     cd neoarc-server
     ```
 
-3.  **Create and Activate a Virtual Environment (Recommended):**
-    Using a virtual environment isolates your project's dependencies from your system's global Python packages.
-
-    *   **Windows:**
-        ```bash
-        python -m venv .venv
-        .venv\Scripts\activate
-        ```
-    *   **Linux/macOS:**
-        ```bash
-        python3 -m venv .venv
-        source .venv/bin/activate
-        ```
-
-4.  **Install Dependencies:**
-    Install the required Python packages using `pip` or `uv`.
-
-    *   **Using `pip`:**
-        ```bash
-        pip install flask werkzeug
-        ```
-    *   **Using `uv`:**
-        ```bash
-        uv pip install flask werkzeug
-        ```
-
-5.  **Configure Admin Credentials:**
-    Open the `neoarc-server/config.py` file in your text editor. Locate the `ADMIN_CREDENTIALS` dictionary and update the `email` and `password` fields with your desired administrator login details.
-
-    ```python
-    # neoarc-server/config.py
-    
-    # ... other configurations ...
-    
-    ADMIN_CREDENTIALS = {
-        "email": "your_admin_email@example.com", # <--- CHANGE THIS
-        "password": "your_secure_admin_password" # <--- CHANGE THIS
-    }
-    
-    # ... rest of the file ...
-    ```
-    **Important:** Change `SECRET_KEY` in `config.py` to a strong, unique value for production environments.
-
-6.  **Run the Server:**
-    Execute the `main.py` file to start the Flask development server.
-
+2.  **Create and Activate a Virtual Environment (Recommended):**
     ```bash
-    python main.py
+    python -m venv .venv
+    .venv\Scripts\activate   # Windows
+    source .venv/bin/activate  # Linux/macOS
     ```
 
-    You should see output indicating that the Flask development server is running. By default, it will be accessible at `http://localhost:5000` (or the port specified in `config.py`).
-
+3.  **Install the Package:**
+    Installs Flask, Werkzeug, python-dotenv, and waitress from `pyproject.toml`.
+    ```bash
+    pip install .
     ```
-     * Serving Flask app 'main'
-     * Debug mode: on
-    WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
-     * Running on http://0.0.0.0:59248 (Press CTRL+C to quit)
-     * Restarting with stat
-     * Debugger is active!
-     * Debugger PIN: XXX-XXX-XXX
+
+4.  **Configure Environment Variables:**
+    Copy the example env file and fill in your values.
+    ```bash
+    copy .env.example .env       # Windows
+    cp .env.example .env         # Linux/macOS
     ```
-    (Note: The port might be `59248` as per `config.py` in the provided code, not `5000`.)
 
-## Accessing the Web Server
+    Key variables to review:
+    - `NEOARC_SECRET_KEY` - Long random string for session signing. Generate with:
+      `python -c "import secrets; print(secrets.token_hex(32))"`
+    - `NEOARC_PORT=59248` - Server port
+    - `NEOARC_ADMIN_PASSWORD` - Admin panel password (default: `change_me`)
+    - `NEOARC_API_TOKEN` - Token for CLI authentication. Generate with:
+      `python -c "import secrets; print(secrets.token_hex(32))"`
 
-Once the server is running:
+## Running the Server
 
-*   **User Interface:** Open your web browser and navigate to `http://localhost:59248` (or the `HOST:PORT` configured in `config.py`). You will be presented with the login/registration page.
-*   **Admin Panel:** Access the Super Admin dashboard by navigating to `http://localhost:59248/admin/login`. Use the credentials you set in `config.py`.
+### Development
+```bash
+python main.py
+```
+Starts the Flask development server on port 59248 with debug mode.
 
-## Database Initialization
+### Production
+```bash
+python wsgi.py
+```
+Starts a Waitress production server on port 59248.
 
-The `init_db()` function in `core/db.py` is called automatically when `main.py` starts if the `neoarc.db` file does not exist. This ensures that the necessary `users` and `aliases` tables are created.
+## Docker
 
-## Next Steps
+```bash
+docker build -t neoarc-server .
+docker run -p 59248:59248 neoarc-server
+```
 
-*   **Register a User:** Create a new user account through the web interface.
-*   **Create Aliases:** Start defining your commands and scripts in the dashboard.
-*   **Set up the CLI Client:** Proceed to the [Client Setup Guide](docs/client/setup.md) to configure your local execution environment.
+The Docker image uses `python:3.12-alpine`, exposes port 59248, and runs `wsgi.py` by default.
+
+## Running Tests
+
+```bash
+pytest tests/ -v
+```
+
+Runs the test suite (57 tests) against an isolated temporary SQLite database. Rate limiters are cleared per test via the `client` fixture.
+
+## Accessing the Server
+
+- **Web Interface:** `http://localhost:59248`
+- **Admin Panel:** `http://localhost:59248/admin/login`
+- **API:** `http://localhost:59248/api/alias/<alias_name>`
 
 Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan

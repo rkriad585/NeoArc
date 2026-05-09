@@ -2,17 +2,14 @@
 {% block content %}
 <div class="max-w-6xl mx-auto">
     
-    <!-- Header -->
     <div class="mb-8 border-b border-glassBorder pb-4 flex justify-between items-end">
         <div>
             <h2 class="font-display text-3xl text-white">GLOBAL NODE SEARCH</h2>
-            
         </div>
-        <div class="font-mono text-xs text-nothingRed">{{ results|length }} NODES FOUND</div>
+        <div class="font-mono text-xs text-nothingRed">{{ total }} NODES FOUND</div>
     </div>
 
-    <!-- Search Bar for Mobile/Result Page -->
-    <form action="{{ url_for('search') }}" method="GET" class="mb-10 md:hidden">
+    <form action="{{ url_for('alias.search') }}" method="GET" class="mb-10 md:hidden">
         <div class="relative">
             <input type="text" name="q" value="{{ query }}" placeholder="SEARCH_GLOBAL_NODES..." 
                    class="w-full bg-black/40 border border-glassBorder rounded-xl py-3 pl-10 pr-4 text-white font-mono focus:outline-none focus:border-nothingRed">
@@ -23,15 +20,13 @@
     {% if not results and query %}
         <div class="text-center py-20 opacity-50">
             <h3 class="font-display text-2xl text-white">NO_DATA_FOUND</h3>
-            <p class="font-mono text-sm text-gray-500">Try a defferent keyword..</p>
+            <p class="font-mono text-sm text-gray-500">Try a different keyword..</p>
         </div>
     {% endif %}
 
-    <!-- Results Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for alias in results %}
-        <a href="{{ url_for('view_alias', alias_name=alias.alias_name) }}" class="glass-panel rounded-3xl p-6 hover:border-nothingRed/50 transition-all group relative overflow-hidden block">
-            <!-- Hover Glow -->
+        <a href="{{ url_for('alias.view_alias', alias_name=alias.alias_name) }}" class="glass-panel rounded-3xl p-6 hover:border-nothingRed/50 transition-all group relative overflow-hidden block">
             <div class="absolute inset-0 bg-nothingRed/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             
             <div class="relative z-10">
@@ -42,13 +37,11 @@
                     </span>
                 </div>
 
-                <!-- Code Preview (Truncated) -->
                 <div class="bg-black/60 rounded-xl p-3 mb-4 font-mono text-xs text-gray-400 h-16 overflow-hidden relative">
                     {{ alias.command }}
                     <div class="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-black to-transparent"></div>
                 </div>
 
-                <!-- Creator Info -->
                 <div class="flex items-center gap-2 border-t border-glassBorder/50 pt-3">
                     <div class="w-6 h-6 rounded-full bg-gray-800 overflow-hidden">
                         {% if alias.profile_pic %}
@@ -64,5 +57,21 @@
         </a>
         {% endfor %}
     </div>
+
+    {% if total_pages > 1 %}
+    <div class="flex justify-center items-center gap-4 mt-10 font-mono text-sm">
+        {% if page > 1 %}
+        <a href="{{ url_for('alias.search', q=query, page=page-1) }}" class="px-4 py-2 border border-glassBorder rounded-full hover:border-nothingRed hover:text-nothingRed transition-all">
+            PREV
+        </a>
+        {% endif %}
+        <span class="text-gray-400">PAGE {{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="{{ url_for('alias.search', q=query, page=page+1) }}" class="px-4 py-2 border border-glassBorder rounded-full hover:border-nothingRed hover:text-nothingRed transition-all">
+            NEXT
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -7,206 +7,298 @@
 ![Go](https://img.shields.io/badge/Client-Golang-00ADD8?style=for-the-badge&logo=go) 
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**NeoArc** is a sophisticated, cross-platform **Command Obfuscation and Alias Execution System**. It bridges the gap between web-based storage and terminal execution, allowing users to store complex scripts (Bash, PowerShell, Python, Go) in a centralized "Execution Grid" and trigger them remotely on any device using a simple alias.
+**Cross-Platform Command Obfuscation & Alias Execution System**
 
-Featuring a premium **"Liquid Glass" / "Nothing OS" UI**, NeoArc offers a cyberpunk aesthetic with powerful administrative control.
-
----
-
-## 📸 Features
-
-### 🌐 Web Server (The Matrix)
-*   **Liquid Glass UI:** A stunning dark-mode interface using TailwindCSS, frosted glass effects, and DotGothic typography.
-*   **User System:** Secure Registration, Login, and Profile management with Avatar uploads.
-*   **Global Search:** Discover public aliases created by other users in the grid.
-*   **Node Inspector:** View detailed info on aliases, including syntax-highlighted code previews.
-*   **Role-Based Access Control (RBAC):** Dedicated Super Admin panel to manage the platform.
-
-### 💻 CLI Tool (The Client)
-*   **Cross-Platform:** Runs natively on Windows, Linux, macOS, and Termux (Android).
-*   **Polyglot Execution:** Automatically detects and runs code in:
-    *   `Bash` / `Sh`
-    *   `PowerShell`
-    *   `CMD`
-    *   `Python`
-    *   `Golang` (Auto-compiles and runs)
-*   **Stealth/Speed:** written in Go for high performance and single-binary deployment.
+NeoArc is a cyber/Matrix-themed ecosystem for storing, managing, and executing command aliases and scripts across platforms. It consists of a Flask web server (the dashboard) and a Go CLI client that fetches and executes aliases remotely. Designed for developers, sysadmins, and anyone who wants a centralized, authenticated command store with a dystopian cyberpunk aesthetic.
 
 ---
 
-## 📂 Project Structure
+## Architecture
 
-```text
-NEOARC/
-├── neoarc-cli/                 # Golang Client
-│   ├── build.ps1               # Windows Build Script
-│   ├── build.sh                # Linux/Mac Build Script
-│   ├── go.mod
-│   └── main.go                 # CLI Logic
-│
-├── neoarc-server/              # Python Flask Server
-│   ├── core/                   # Backend Modules
-│   │   └── admin.py            # Super Admin Logic
-│   ├── static/                 # Logo, Favicons
-│   ├── templates/              # HTML Templates (Jinja2)
-│   │   ├── admin/              # Admin Panel Templates
-│   │   │   ├── dashboard.html
-│   │   │   ├── login.html
-│   │   │   └── view_user.html
-│   │   ├── base.html           # Main Layout
-│   │   ├── dashboard.html      # User Dashboard
-│   │   ├── error.html          # Custom 404/500 Pages
-│   │   ├── profile.html        # User Profile & Settings
-│   │   ├── register.html
-│   │   ├── search.html         # Global Search
-│   │   └── view.html           # Alias Details
-│   ├── config.py               # Admin Credentials Config
-│   └── main.py                 # App Entry Point
-│
-└── README.md
+```
+┌─────────────────┐       HTTPS / Bearer Auth        ┌──────────────────────┐
+│  NeoArc Server   │ ◄──────────────────────────────► │   NeoArc CLI (Go)    │
+│  (Flask + WSGI)  │   GET /api/alias/<name>          │  get / run / config  │
+│                  │   GET /api/aliases (list)         │  completion (tab)    │
+│                  │       ETag caching, 304s         │                      │
+│  SQLite (WAL)    │                                  │  Local cache + trust │
+│  Web Dashboard   │                                  │  5 platform builds   │
+│  Admin Panel     │                                  │                      │
+└─────────────────┘                                  └──────────────────────┘
+```
+
+Aliases are created and managed via the web dashboard, stored in a SQLite database, and served to authenticated CLI clients through a REST API protected by Bearer tokens. The CLI caches responses locally (30s TTL) and prompts users to confirm execution of remote code (with a persistent trust store for repeat aliases).
+
+---
+
+## Features
+
+| Category | Details |
+|---|---|
+| **Web Dashboard** | Create, edit, delete, search, and view aliases. Cyber-themed dark UI with Tailwind CSS |
+| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`. Supports bash, PowerShell, cmd, Python, and Go exec types |
+| **Authentication** | Session-based auth with CSRF protection. Rate-limited login (5/min) and registration (3/5min) |
+| **API Security** | Bearer token authentication, rate-limited (60/min per IP), ETag caching with 304 responses |
+| **Admin Panel** | User management — view, block/unblock, delete users. Configurable admin route prefix |
+| **Profile Management** | Update full name, email. Upload avatar with MIME-signature validation (PNG, JPG, GIF, WebP) |
+| **Caching** | Server-side in-memory alias cache (30s TTL, ETag). Client-side file-based cache (30s TTL) |
+| **Trust System** | CLI prompts before executing remote code. Persistent trust store per alias with timestamp |
+| **Database** | SQLite with WAL mode, foreign keys, busy timeout, retry-on-lock logic |
+| **Argument Passing** | CLI passes args after alias name through to the executed script (`$1`, `$args[0]`, `sys.argv[1]`) |
+| **Tab Completion** | `neoarc completion bash|zsh|powershell` generates shell completions for commands, flags, and alias names |
+| **Cross-Platform CLI** | Pre-built binaries for Windows (amd64), macOS (amd64/arm64), Linux (amd64/arm64) |
+| **Docker** | Multi-stage Alpine build. Compose file with persistent volumes for DB and uploads |
+| **Exec Types** | `bash`, `powershell`, `cmd`, `python`, `go` — mapped to appropriate runtime per OS |
+| **Error Pages** | Themed 404, 500 error pages with matrix-flavored messages |
+
+---
+
+## Project Structure
+
+```
+NeoArc/
+├── neoarc-server/              # Flask web application
+│   ├── core/
+│   │   ├── routes/             # Blueprint modules
+│   │   │   ├── alias_routes.py     # Dashboard, CRUD, search
+│   │   │   ├── api_routes.py       # REST API endpoint
+│   │   │   ├── auth_routes.py      # Login, register, logout
+│   │   │   └── profile_routes.py   # Profile management
+│   │   ├── admin.py            # Admin panel (Blueprint)
+│   │   ├── auth.py             # CSRF, API token, session helpers
+│   │   ├── cache.py            # In-memory alias cache with ETag
+│   │   ├── db.py               # SQLite setup (WAL, indexes)
+│   │   ├── helpers.py          # DB connection helpers
+│   │   ├── rate_limiter.py     # In-memory sliding-window rate limiter
+│   │   └── validation.py       # Input validation + image MIME detection
+│   ├── templates/              # Jinja2 templates (Tailwind CSS)
+│   ├── tests/                  # Pytest suite (57 tests)
+│   │   ├── test_api.py
+│   │   ├── test_routes.py
+│   │   └── test_security.py
+│   ├── config.py               # Environment-based configuration
+│   ├── main.py                 # Flask application factory
+│   ├── wsgi.py                 # Waitress production entry point
+│   ├── pyproject.toml          # Python package metadata
+│   └── Dockerfile              # Multi-stage Alpine build
+├── neoarc-cli/                 # Go CLI client
+│   ├── cmd/neoarc/main.go      # Entry point
+│   ├── internal/cli/
+│   │   ├── cli.go              # Core logic (fetch, execute, config, cache, trust)
+│   │   ├── completion.go       # Shell completion generators (bash/zsh/powershell)
+│   │   └── cli_test.go         # Unit tests (30 tests)
+│   ├── tests/
+│   │   └── integration_test.go # Integration tests (3 tests)
+│   ├── build.ps1               # Windows cross-compile script
+│   ├── build.sh                # Unix cross-compile script
+│   └── go.mod
+├── docker-compose.yml          # Production Docker stack
+└── static/uploads/             # Avatar uploads directory
 ```
 
 ---
 
-## 🚀 Installation & Setup
+## Quick Start
 
-### 1. Server Setup (Python)
-
-Ensure you have **Python 3.8+** installed.
-
-1.  Navigate to the server directory:
-    ```bash
-    cd neoarc-server
-    ```
-
-2.  Create and activate a virtual environment (recommended):
-    ```bash
-    # Windows
-    python -m venv .venv
-    .venv\Scripts\activate
-
-    # Linux/macOS
-    python3 -m venv .venv
-    source .venv/bin/activate
-    ```
-
-3.  Install dependencies:
-    ```bash
-    pip install flask werkzeug
-    # Or if you use uv:
-    uv pip install flask werkzeug
-    ```
-
-4.  **Configuration:**
-    Open `neoarc-server/config.py` and set your Admin credentials:
-    ```python
-    ADMIN_CREDENTIALS = {
-        "email": "your_email@example.com",
-        "password": "your_secure_password"
-    }
-    ```
-
-5.  Run the server:
-    ```bash
-    python main.py
-    ```
-    *The server will start at `http://localhost:5000`.*
-
----
-
-### 2. Client Setup (Golang)
-
-Ensure you have **Go 1.20+** installed.
-
-1.  Navigate to the CLI directory:
-    ```bash
-    cd neoarc-cli
-    ```
-
-2.  Build the binary:
-
-    *   **Windows (PowerShell):**
-        ```powershell
-        .\build.ps1
-        ```
-    *   **Linux / macOS / Termux:**
-        ```bash
-        chmod +x build.sh
-        ./build.sh
-        ```
-
-3.  Add the binary to your system PATH or move it to `/usr/local/bin` (Linux) or `C:\Windows\System32` (Windows) for global access.
-
----
-
-## 🎮 Usage Guide
-
-### Configuring the Client
-Before running aliases, point the CLI to your web server:
+### Server (Python 3.10+)
 
 ```bash
-neoarc config http://localhost:5000
-# Or your public IP/Domain
-neoarc config http://192.168.1.100:5000
+cd neoarc-server
+pip install -e .
+python main.py
 ```
 
-### Executing Aliases
-Once you have created an alias on the website (e.g., named `sys_info`), run it instantly:
+The server starts on `http://0.0.0.0:59248` by default. Open it in a browser, register an account, and start creating aliases.
+
+### CLI (Go 1.25+)
 
 ```bash
-# Run immediately
-neoarc run sys_info
+cd neoarc-cli
+go build -o neoarc ./cmd/neoarc
+./neoarc config http://localhost:59248
+./neoarc config-token <api-token-from-server>
+./neoarc run my-alias
+```
 
-# Shorthand
-neoarc sys_info
+The API token is shown once on server startup (unless `NEOARC_API_TOKEN` is set). You can also bake it into the binary at build time (see build scripts).
 
-# View the code without running
-neoarc get sys_info
+---
+
+## Configuration Reference
+
+All configuration is via environment variables prefixed with `NEOARC_`.
+
+| Variable | Default | Description |
+|---|---|---|
+| `NEOARC_PORT` | `59248` | Server listen port |
+| `NEOARC_HOST` | `0.0.0.0` | Server bind address |
+| `NEOARC_DEBUG` | `False` | Enable Flask debug mode |
+| `NEOARC_SECRET_KEY` | auto-generated | Flask session signing key (set for persistence across restarts) |
+| `NEOARC_API_TOKEN` | auto-generated | Bearer token for CLI authentication |
+| `NEOARC_DB_PATH` | `neoarc.db` | SQLite database file path |
+| `NEOARC_UPLOAD_FOLDER` | `static/uploads` | Avatar upload directory |
+| `NEOARC_MAX_UPLOAD_MB` | `5` | Max upload file size in MB |
+| `NEOARC_ADMIN_EMAIL` | `admin@neoarc.local` | Admin panel login email |
+| `NEOARC_ADMIN_PASSWORD` | `change_me` | Admin panel password |
+| `NEOARC_ADMIN_ROUTE` | `/admin` | Admin panel URL prefix |
+
+Set these via a `.env` file in the `neoarc-server/` directory or pass them directly to Docker.
+
+---
+
+## Build Instructions
+
+### Server
+
+```bash
+cd neoarc-server
+pip install -e .
+```
+
+Or install from `pyproject.toml`:
+
+```bash
+cd neoarc-server
+pip install .
+```
+
+Run with Waitress for production:
+
+```bash
+python wsgi.py
+```
+
+### CLI
+
+The CLI includes build scripts for cross-compiling to all platforms.
+
+**Unix:**
+```bash
+cd neoarc-cli
+chmod +x build.sh
+./build.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+cd neoarc-cli
+.\build.ps1
+```
+
+Both scripts:
+- Auto-detect the server's `.env` file to bake in the API token
+- Build for Windows/amd64, macOS/amd64, macOS/arm64, Linux/amd64, Linux/arm64
+- Inject version, commit hash, and build time via linker flags
+- Output binaries to `neoarc-cli/bin/`
+
+Manual single-platform build:
+
+```bash
+cd neoarc-cli
+go build -ldflags="-s -w" -o neoarc ./cmd/neoarc
 ```
 
 ---
 
-## 🛡️ Admin Panel
+## Docker Deployment
 
-NeoArc comes with a built-in Super Admin dashboard to moderate the grid.
+Build and run with Docker Compose:
 
-1.  Navigate to: `http://localhost:5000/admin/login`
-2.  Log in using credentials from `config.py`.
+```bash
+docker compose build
+docker compose up -d
+```
 
-**Capabilities:**
-*   **Dashboard:** View all users and their alias counts.
-*   **User Inspector:** View full profile, email, and list of aliases.
-*   **Moderation:**
-    *   **Block User:** Prevent a user from logging in.
-    *   **Delete User:** Purge a user and all their aliases from the database.
-    *   **Delete Alias:** Remove specific malicious or broken aliases.
+Required environment variables (set in `.env` or shell):
+
+```bash
+NEOARC_SECRET_KEY=your-secret-key
+NEOARC_API_TOKEN=your-api-token
+NEOARC_ADMIN_PASSWORD=your-admin-password
+```
+
+The compose file mounts two persistent volumes:
+- `neoarc-data` — SQLite database at `/app/data/`
+- `neoarc-uploads` — Avatar uploads at `/app/static/uploads/`
+
+The server is exposed on port `59248`.
+
+### Standalone Docker
+
+```bash
+cd neoarc-server
+docker build -t neoarc-server .
+docker run -d \
+  -p 59248:59248 \
+  -v neoarc-data:/app/data \
+  -v neoarc-uploads:/app/static/uploads \
+  -e NEOARC_SECRET_KEY=... \
+  -e NEOARC_API_TOKEN=... \
+  -e NEOARC_ADMIN_PASSWORD=... \
+  neoarc-server
+```
 
 ---
 
-## 🛠️ Technology Stack
+## CLI Usage
 
-*   **Frontend:** HTML5, TailwindCSS (CDN), jQuery, Highlight.js, FontAwesome (via SVG).
-*   **Backend:** Python Flask, Blueprint Architecture, SQLite3.
-*   **Client:** Golang (`net/http`, `os/exec`).
-*   **Design Language:** Nothing OS (Dot Matrix Typography & Monochrome/Red Palette).
+```
+neoarc get <alias> [args...]       — Print alias code to stdout
+neoarc run <alias> [args...]       — Fetch and execute alias with args
+neoarc <alias> [args...]           — Shorthand for run
+neoarc config <server-url>         — Set NeoArc server URL
+neoarc config-token <tok>          — Set API token
+neoarc config insecure             — Skip TLS certificate verification
+neoarc config secure               — Re-enable TLS verification
+neoarc help                        — Show help
+neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
+
+Flags (place before alias):
+  --dry-run                        — Print alias code without executing
+  --yes                            — Skip execution confirmation prompt
+
+Args after <alias> are passed through to the executed command:
+  bash/sh:    $1, $2, $@
+  powershell: $args[0], $args[1]
+  python:     sys.argv[1], sys.argv[2]
+```
 
 ---
 
-## 🤝 Contributing
+## Test Suite
 
-Contributions are welcome!
-1.  Fork the Project.
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the Branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
+### Server (66 tests)
 
-## 📄 License
+```bash
+cd neoarc-server
+pip install -e ".[test]"   # if pytest is in extras, else pip install pytest
+pytest tests/ -v
+```
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Tests cover: registration, login, alias CRUD, search, profile updates, API auth, ETag caching, rate limiting, CSRF protection, input validation, session protection, blocked users, cross-user isolation, password reset.
+
+### CLI (30 unit + 3 integration)
+
+```bash
+cd neoarc-cli
+go test ./internal/cli/... -v    # unit tests
+go test ./tests/... -v           # integration tests (builds binary)
+```
 
 ---
 
-<p align="center">
-  <span style="font-family: monospace;">NEOARC v1.0.0</span>
-</p>
+## Contributing
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/my-feature`).
+3. Make changes and ensure tests pass.
+4. Commit with a descriptive message.
+5. Open a pull request.
+
+Code style: Python follows PEP 8, Go follows `gofmt`. All new features should include tests.
+
+---
+
+## License
+
+This project is provided for educational and development purposes. No license file is currently specified — see the repository owner for licensing inquiries.

@@ -1,86 +1,107 @@
-# Server Configuration (`config.py`)
+# Server Configuration
 
-The `config.py` file centralizes all configurable parameters for the NeoArc server. It's essential to review and customize these settings, especially for production deployments, to ensure security and optimal performance.
+All configuration is loaded from environment variables prefixed with `NEOARC_` via `python-dotenv`. A `.env` file in the `neoarc-server/` directory is loaded automatically. Missing tokens/keys with no env var set are auto-generated with a warning.
 
-## Configuration Parameters
+## Server Settings
 
-### `PORT`
--   **Description:** The port number on which the Flask server will listen for incoming connections.
--   **Type:** `int`
--   **Default:** `59248`
--   **Example:** `PORT = 8000`
+### `NEOARC_PORT`
+- **Description:** The port number the server listens on.
+- **Type:** `int`
+- **Default:** `59248`
+- **Env:** `NEOARC_PORT=59248`
 
-### `HOST`
--   **Description:** The host address the server will bind to.
-    -   `"0.0.0.0"` makes the server accessible from any IP address on the network.
-    -   `"127.0.0.1"` or `"localhost"` restricts access to the local machine only.
--   **Type:** `str`
--   **Default:** `"0.0.0.0"`
--   **Example:** `HOST = "127.0.0.1"`
+### `NEOARC_HOST`
+- **Description:** The host address to bind to. `0.0.0.0` exposes to the network.
+- **Type:** `str`
+- **Default:** `0.0.0.0`
+- **Env:** `NEOARC_HOST=0.0.0.0`
 
-### `DEBUG`
--   **Description:** Enables or disables Flask's debug mode.
-    -   `True`: Activates the debugger and reloader, providing detailed error messages and automatic code reloading on changes. **Should always be `False` in production.**
-    -   `False`: Disables debug features.
--   **Type:** `bool`
--   **Default:** `True`
--   **Example:** `DEBUG = False`
+### `NEOARC_DEBUG`
+- **Description:** Enables Flask debug mode. Must be `False` in production.
+- **Type:** `bool`
+- **Default:** `False`
+- **Env:** `NEOARC_DEBUG=False`
 
-### `UPLOAD_FOLDER`
--   **Description:** The directory where uploaded files (e.g., user profile pictures) will be stored. This path is relative to the `neoarc-server` directory.
--   **Type:** `str`
--   **Default:** `'static/uploads'`
--   **Example:** `UPLOAD_FOLDER = 'data/uploads'`
+## Security
+
+### `NEOARC_SECRET_KEY`
+- **Description:** Cryptographic key for signing session cookies. **Must be a long random string in production.**
+- **Type:** `str`
+- **Default:** Auto-generated via `secrets.token_hex(32)` if unset. A warning is emitted.
+- **Env:** `NEOARC_SECRET_KEY=<64-char-hex>`
+- **Generate:** `python -c "import secrets; print(secrets.token_hex(32))"`
+- **Note:** If auto-generated, sessions will be invalidated on every server restart.
+
+### `NEOARC_ADMIN_EMAIL`
+- **Description:** Email address for the admin panel login.
+- **Type:** `str`
+- **Default:** `admin@neoarc.local`
+- **Env:** `NEOARC_ADMIN_EMAIL=admin@neoarc.local`
+
+### `NEOARC_ADMIN_PASSWORD`
+- **Description:** Plain-text password for the admin panel. Automatically hashed at startup via `werkzeug.security.generate_password_hash()`.
+- **Type:** `str`
+- **Default:** `change_me`
+- **Env:** `NEOARC_ADMIN_PASSWORD=change_me`
+- **Warning:** A warning is emitted if the default is used.
+
+### `NEOARC_ADMIN_PASSWORD_HASH`
+- **Description:** Pre-computed password hash. If set, overrides `NEOARC_ADMIN_PASSWORD`.
+- **Type:** `str`
+- **Default:** Auto-generated from `NEOARC_ADMIN_PASSWORD` if unset.
+- **Env:** `NEOARC_ADMIN_PASSWORD_HASH=<werkzeug-hash>`
+
+### `NEOARC_API_TOKEN`
+- **Description:** Bearer token for API authentication (used by the NeoArc CLI client). **Must be a long random string in production.**
+- **Type:** `str`
+- **Default:** Auto-generated via `secrets.token_hex(32)` if unset. A warning is emitted.
+- **Env:** `NEOARC_API_TOKEN=<64-char-hex>`
+- **Generate:** `python -c "import secrets; print(secrets.token_hex(32))"`
+- **Note:** Build scripts inject this token into the neoarc binary at compile time.
+
+## Database
+
+### `NEOARC_DB_PATH`
+- **Description:** Path to the SQLite database file, relative to `neoarc-server/`.
+- **Type:** `str`
+- **Default:** `neoarc.db`
+- **Env:** `NEOARC_DB_PATH=neoarc.db`
+
+## File Uploads
+
+### `NEOARC_UPLOAD_FOLDER`
+- **Description:** Directory for uploaded profile pictures, relative to `neoarc-server/`.
+- **Type:** `str`
+- **Default:** `static/uploads`
+- **Env:** `NEOARC_UPLOAD_FOLDER=static/uploads`
+
+### `NEOARC_MAX_UPLOAD_MB`
+- **Description:** Maximum upload file size in megabytes.
+- **Type:** `int`
+- **Default:** `5`
+- **Env:** `NEOARC_MAX_UPLOAD_MB=5`
+- **Note:** Enforced by Flask's `MAX_CONTENT_LENGTH`.
 
 ### `ALLOWED_EXTENSIONS`
--   **Description:** A set of allowed file extensions for uploads. This helps prevent users from uploading potentially malicious file types.
--   **Type:** `set` of `str`
--   **Default:** `{'png', 'jpg', 'jpeg', 'gif', 'webp'}`
--   **Example:** `ALLOWED_EXTENSIONS = {'png', 'jpg'}`
+- **Description:** Allowed file extensions for uploads (not configurable via env var).
+- **Type:** `set` of `str`
+- **Hardcoded:** `{png, jpg, jpeg, gif, webp}`
+- **Note:** `validate_image()` also performs content-based MIME detection via magic bytes, not just extension checking.
 
-### `DB_PATH`
--   **Description:** The path to the SQLite database file. This path is relative to the `neoarc-server` directory.
--   **Type:** `str`
--   **Default:** `'neoarc.db'`
--   **Example:** `DB_PATH = 'data/neoarc_prod.db'`
+## Routing
 
-### `ADMIN_ROUTE`
--   **Description:** The URL prefix for the Super Admin panel. Changing this can add a layer of obscurity.
--   **Type:** `str`
--   **Default:** `'/admin'`
--   **Example:** `ADMIN_ROUTE = '/control_panel_xyz'`
+### `NEOARC_ADMIN_ROUTE`
+- **Description:** URL prefix for the admin panel. Changing this adds obscurity.
+- **Type:** `str`
+- **Default:** `/admin`
+- **Env:** `NEOARC_ADMIN_ROUTE=/admin`
 
-### `SECRET_KEY`
--   **Description:** A cryptographic key used by Flask to sign session cookies and other security-related operations.
--   **Type:** `str`
--   **Default:** `'neoarc_super_secret_key_change_me'`
--   **Security Warning:** **THIS MUST BE CHANGED TO A LONG, RANDOM, AND COMPLEX STRING IN PRODUCTION.** Failure to do so will compromise the security of user sessions.
--   **Example:** `SECRET_KEY = 'your_very_long_and_random_secret_key_here_1234567890abcdef'`
+## Production Best Practices
 
-### `ADMIN_CREDENTIALS`
--   **Description:** A dictionary containing the email and password for the Super Admin account. These credentials are used to log into the `/admin` panel.
--   **Type:** `dict`
--   **Default:**
-    ```python
-    ADMIN_CREDENTIALS = {
-        "email": "rkriad585@gamil.com",
-        "password": "riad"
-    }
-    ```
--   **Security Warning:** **THESE CREDENTIALS MUST BE CHANGED TO SECURE VALUES IN PRODUCTION.** Do not use default or easily guessable passwords.
--   **Example:**
-    ```python
-    ADMIN_CREDENTIALS = {
-        "email": "admin@yourdomain.com",
-        "password": "a_very_strong_admin_password_123!"
-    }
-    ```
+- Set `NEOARC_SECRET_KEY` to a long random hex string (64 chars).
+- Set `NEOARC_API_TOKEN` to a long random hex string (64 chars).
+- Change `NEOARC_ADMIN_PASSWORD` from the default `change_me`.
+- Set `NEOARC_DEBUG=False`.
+- Never commit `.env` to version control.
 
-## Best Practices for Production
-
--   **Change Defaults:** Always change `SECRET_KEY` and `ADMIN_CREDENTIALS` to strong, unique values.
--   **Disable Debug Mode:** Set `DEBUG = False` to prevent sensitive information from being exposed.
--   **Secure File Storage:** Ensure `UPLOAD_FOLDER` has appropriate file system permissions to prevent unauthorized access or execution of uploaded files.
--   **Environment Variables:** For highly sensitive information like `SECRET_KEY` and `ADMIN_CREDENTIALS`, consider loading them from environment variables rather than hardcoding them in `config.py`. This prevents them from being committed to version control.
-
-written by Neorwc
+Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan

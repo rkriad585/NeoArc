@@ -11,7 +11,7 @@
                     {{ alias.exec_type if alias.exec_type else 'AUTO' }}
                 </span>
             </div>
-            <p class="font-mono text-xs text-gray-400">GLOBAL ID: #{{ alias.id }} - Secur Hansh</p>
+            <p class="font-mono text-xs text-gray-400">GLOBAL ID: #{{ alias.id }}{% if alias.created_at %} - Created: {{ alias.created_at[:10] }}{% endif %}</p>
         </div>
 
         <!-- Creator Card -->
@@ -52,13 +52,13 @@
 
     <!-- Actions -->
     <div class="flex gap-4 mt-6">
-        <button onclick="copyCmd('omniarc {{ alias.alias_name }}')" 
+        <button onclick="copyCmd('neoarc {{ alias.alias_name }}')" 
                 class="flex-1 bg-white text-black font-display text-lg py-4 rounded-2xl hover:bg-nothingRed hover:text-white transition-all shadow-lg flex justify-center items-center gap-3 group">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
             Copy
         </button>
         
-        <a href="{{ url_for('dashboard') }}" class="px-8 py-4 border border-glassBorder rounded-2xl font-display text-gray-400 hover:text-white hover:border-white transition-all">
+        <a href="{{ url_for('alias.dashboard') }}" class="px-8 py-4 border border-glassBorder rounded-2xl font-display text-gray-400 hover:text-white hover:border-white transition-all">
             Back
         </a>
     </div>

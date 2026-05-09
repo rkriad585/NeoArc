@@ -3,11 +3,11 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     
-    <!-- LEFT COLUMN: Create Alias Form (Material 3 Card) -->
     <div class="lg:col-span-1">
         <div class="glass-panel rounded-3xl p-6 sticky top-28">
             <h3 class="font-display text-xl mb-4 text-white border-b border-glassBorder pb-2">Compile</h3>
-            <form action="{{ url_for('dashboard') }}" method="POST" class="space-y-4">
+            <form action="{{ url_for('alias.dashboard') }}" method="POST" class="space-y-4" id="aliasForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                     <label class="font-mono text-xs text-gray-400 block mb-1">Alias Name</label>
                     <input type="text" name="alias_name" placeholder="e.g., hack_mainframe" required 
@@ -28,14 +28,11 @@
                     </div>
                 </div>
                 <div>
-                    <label class="font-mono text-xs text-gray-400 block mb-1">Code / Command
-                    </label>
-                    <!-- Pure Tailwind Styled Textarea -->
-                    <textarea name="command" rows="8" required placeholder="Write your code here..." spellcheck="false"
+                    <label class="font-mono text-xs text-gray-400 block mb-1">Code / Command</label>
+                    <textarea id="command_input" name="command" rows="8" required placeholder="Write your code here..." spellcheck="false"
                               class="w-full bg-[#181a1f]/80 border border-glassBorder rounded-xl px-4 py-3 text-gray-300 font-mono text-sm leading-relaxed focus:outline-none focus:border-nothingRed transition-all resize-y shadow-inner"></textarea>
                 </div>
                 <button type="submit" class="w-full bg-nothingRed text-white font-display text-lg py-3 rounded-2xl hover:bg-red-700 transition-all shadow-lg hover:shadow-nothingRed/40 mt-2 flex justify-center items-center gap-2 group">
-                    <!-- Zap / Inject Icon -->
                     <svg class="w-5 h-5 text-white group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
@@ -45,11 +42,14 @@
         </div>
     </div>
 
-    <!-- RIGHT COLUMN: Alias Grid -->
     <div class="lg:col-span-2 space-y-4">
         <div class="flex justify-between items-end mb-6 border-b border-glassBorder pb-2">
             <h2 class="font-display text-2xl text-white">Active Nodes</h2>
-            <span class="font-mono text-xs text-gray-500">Total: {{ aliases|length }}</span>
+            <div class="flex items-center gap-4">
+                <input type="text" id="filterInput" placeholder="Filter nodes..." 
+                       class="bg-black/40 border border-glassBorder rounded-full py-1.5 px-4 text-sm font-mono text-white focus:outline-none focus:border-nothingRed transition-all w-40">
+                <span class="font-mono text-xs text-gray-500" id="nodeCount">Total: {{ aliases|length }}</span>
+            </div>
         </div>
 
         {% if not aliases %}
@@ -58,44 +58,71 @@
             </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 gap-5">
+        <div class="grid grid-cols-1 gap-5" id="aliasList">
             {% for alias in aliases %}
-            <div class="glass-panel rounded-3xl p-6 hover:border-nothingRed/50 transition-all group flex flex-col justify-between h-full">
+            <div class="alias-card glass-panel rounded-3xl p-6 hover:border-nothingRed/50 transition-all group flex flex-col justify-between h-full" data-name="{{ alias.alias_name | lower }}" data-type="{{ alias.exec_type | lower }}">
                 <div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="font-display text-2xl text-white group-hover:text-nothingRed transition-colors">{{ alias.alias_name }}</h4>
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 class="alias-name font-display text-2xl text-white group-hover:text-nothingRed transition-colors">{{ alias.alias_name }}</h4>
                         <span class="text-xs font-mono border border-glassBorder px-3 py-1 rounded-full text-gray-400 bg-white/5">
                             {{ alias.exec_type | upper if alias.exec_type else 'AUTO' }}
                         </span>
                     </div>
+                    {% if alias.created_at %}
+                    <p class="font-mono text-[10px] text-gray-600 mb-3">Created: {{ alias.created_at[:10] }}</p>
+                    {% endif %}
                     
-                    <!-- Highlight.js Code Snippet Box -->
                     <div class="bg-[#181a1f]/90 border border-glassBorder/50 rounded-xl p-4 mb-5 shadow-inner relative group/code">
                         <pre class="overflow-x-auto pb-2"><code class="language-{{ alias.exec_type if alias.exec_type else 'bash' }}">{{ alias.command }}</code></pre>
                     </div>
                 </div>
 
-                <!-- Action Toolbar -->
                 <div class="flex justify-between items-center mt-auto border-t border-glassBorder/50 pt-4">
-                    <button onclick="copyCmd('nwoarc {{ alias.alias_name }}')" 
+                    <button onclick="copyCmd('neoarc {{ alias.alias_name }}')" 
                             class="text-sm font-mono text-gray-300 hover:text-white flex items-center gap-2 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-all border border-transparent hover:border-glassBorder">
-                        <!-- Copy Icon -->
                         <svg class="w-4 h-4 text-gray-400 group-hover/btn:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                         </svg>
                     </button>
-                    <a href="{{ url_for('delete_alias', id=alias.id) }}" 
-                       onclick="return confirm('Purge this alias from the matrix?')"
-                       class="text-sm font-display text-gray-500 hover:text-nothingRed transition-colors px-4 py-2">
-                                <!-- Delete Icon -->
-                                <svg class="w-4 h-4 text-gray-500 group-hover/del:text-nothingRed transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                    </a>
+                    <div class="flex gap-2">
+                        <a href="{{ url_for('alias.edit_alias', id=alias.id) }}" 
+                           class="text-sm font-display text-gray-500 hover:text-white transition-colors px-3 py-2 border border-transparent hover:border-glassBorder rounded-xl">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </a>
+                        <a href="{{ url_for('alias.delete_alias', id=alias.id) }}" 
+                           onclick="return confirm('Purge this alias from the matrix?')"
+                           class="text-sm font-display text-gray-500 hover:text-nothingRed transition-colors px-3 py-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </a>
+                    </div>
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    $('#filterInput').on('keyup', function() {
+        var val = $(this).val().toLowerCase();
+        var visible = 0;
+        $('.alias-card').each(function() {
+            var name = $(this).data('name');
+            var type = $(this).data('type');
+            if (name.includes(val) || type.includes(val)) {
+                $(this).show();
+                visible++;
+            } else {
+                $(this).hide();
+            }
+        });
+        $('#nodeCount').text('Total: ' + visible);
+    });
+});
+</script>
 {% endblock %}

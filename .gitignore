@@ -7,5 +7,16 @@ wheels/
 *.egg-info
 uv.lock
 
+**/uploads/**
+
+.pytest_*/
+
 # Virtual environments
 .venv
+
+# Environment variables (contains secrets)
+.env
+
+*.db
+
+**/bin/**
