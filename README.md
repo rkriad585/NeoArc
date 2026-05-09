@@ -298,7 +298,3 @@ go test ./tests/... -v           # integration tests (builds binary)
 Code style: Python follows PEP 8, Go follows `gofmt`. All new features should include tests.
 
 ---
-
-## License
-
-This project is provided for educational and development purposes. No license file is currently specified — see the repository owner for licensing inquiries.
