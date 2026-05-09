@@ -7,7 +7,7 @@
 set -eu
 
 REPO="rkriad585/NeoArc"
-VERSION="v1.0.0"
+VERSION="v3.0.1"
 INSTALL_DIR="${HOME}/.config/neostore/neoarc/bin"
 BINARY="neoarc"
 INSTALL_PATH="${INSTALL_DIR}/${BINARY}"
@@ -135,7 +135,7 @@ echo "  Binary : ${INSTALL_PATH}"
 echo "  Version: ${VERSION}"
 echo "  Usage  : neoarc help"
 echo "  To uninstall, run:"
-echo "    ${0} --selfuninstall"
+echo "    neoarc --selfuninstall"
 echo "========================================"
 echo ""
 echo "Run the following now (or restart your terminal):"

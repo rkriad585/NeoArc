@@ -8,12 +8,12 @@
   Use --selfuninstall to remove NeoArc from the system.
 .EXAMPLE
   .\installer.ps1          # Install NeoArc
-  .\installer.ps1 --selfuninstall  # Uninstall NeoArc
+  neoarc --selfuninstall  # Uninstall NeoArc
 #>
 
 $ErrorActionPreference = "Stop"
 $Repo = "rkriad585/NeoArc"
-$Version = "v1.0.0"
+$Version = "v3.0.1"
 $InstallDir = "$env:USERPROFILE\.config\neostore\neoarc\bin"
 $InstallPath = "$InstallDir\neoarc.exe"
 
@@ -112,5 +112,5 @@ Write-Host "  Binary : $InstallPath" -ForegroundColor Gray
 Write-Host "  Version: $Version" -ForegroundColor Gray
 Write-Host "  Usage  : neoarc help" -ForegroundColor Gray
 Write-Host "  To uninstall, run:" -ForegroundColor Gray
-Write-Host "    .\installer.ps1 --selfuninstall" -ForegroundColor Gray
+Write-Host "    neoarc --selfuninstall" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Green
