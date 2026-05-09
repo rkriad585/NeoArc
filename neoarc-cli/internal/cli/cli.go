@@ -525,7 +525,7 @@ func addToPath(targetDir string) int {
 			os.Setenv("Path", newPath)
 			fmt.Println("OK   Added to PATH for this session.")
 			fmt.Println(">>> To make it permanent, run the following in an Administrator PowerShell:")
-			fmt.Printf("    [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path','User')+'%s;%s','User')\n", ";", targetDir)
+			fmt.Printf("    [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path','User')+';%s','User')\n", targetDir)
 			fmt.Println("    Or run: installer.ps1")
 		} else {
 			fmt.Println("OK   Already in PATH.")
