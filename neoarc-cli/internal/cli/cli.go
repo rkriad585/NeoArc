@@ -374,6 +374,202 @@ func FetchAliases() ([]string, error) {
 	return listResp.Aliases, nil
 }
 
+func installDir() string {
+	dir := filepath.Join(homeDir(), ".config", "neostore", "neoarc", "bin")
+	os.MkdirAll(dir, 0755)
+	return dir
+}
+
+func homeDir() string {
+	if runtime.GOOS == "windows" {
+		return os.Getenv("USERPROFILE")
+	}
+	h, _ := os.UserHomeDir()
+	return h
+}
+
+func selfInstall() int {
+	targetDir := installDir()
+	binName := "neoarc"
+	if runtime.GOOS == "windows" {
+		binName = "neoarc.exe"
+	}
+	targetPath := filepath.Join(targetDir, binName)
+
+	fmt.Println(">>> Installing NeoArc...")
+
+	// Determine download URL for latest version
+	repo := "rkriad585/NeoArc"
+	version := "v3.0.1"
+	var downloadName string
+
+	switch runtime.GOOS {
+	case "windows":
+		downloadName = "neoarc-windows-amd64.exe"
+	case "darwin":
+		switch runtime.GOARCH {
+		case "arm64":
+			downloadName = "neoarc-darwin-arm64"
+		default:
+			downloadName = "neoarc-darwin-amd64"
+		}
+	case "linux":
+		switch runtime.GOARCH {
+		case "arm64":
+			downloadName = "neoarc-linux-arm64"
+		default:
+			downloadName = "neoarc-linux-amd64"
+		}
+	default:
+		fmt.Fprintf(os.Stderr, "Unsupported platform: %s/%s\n", runtime.GOOS, runtime.GOARCH)
+		return 1
+	}
+
+	url := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", repo, version, downloadName)
+
+	fmt.Printf(">>> Downloading %s\n", url)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Download failed: %v\n", err)
+		fmt.Println("Falling back to copying the current binary...")
+		return copySelf(targetPath)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "Download failed: HTTP %d\n", resp.StatusCode)
+		fmt.Println("Falling back to copying the current binary...")
+		return copySelf(targetPath)
+	}
+
+	out, err := os.Create(targetPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating file: %v\n", err)
+		return 1
+	}
+	defer out.Close()
+
+	written, err := io.Copy(out, resp.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing file: %v\n", err)
+		out.Close()
+		os.Remove(targetPath)
+		return 1
+	}
+	out.Close()
+
+	if written == 0 {
+		fmt.Fprintln(os.Stderr, "Downloaded empty file")
+		os.Remove(targetPath)
+		fmt.Println("Falling back to copying the current binary...")
+		return copySelf(targetPath)
+	}
+
+	if runtime.GOOS != "windows" {
+		os.Chmod(targetPath, 0755)
+	}
+
+	fmt.Printf("OK   Installed to %s (%d bytes)\n", targetPath, written)
+
+	return addToPath(targetDir)
+}
+
+func copySelf(targetPath string) int {
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error resolving binary path: %v\n", err)
+		return 1
+	}
+
+	src, err := os.Open(exe)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening current binary: %v\n", err)
+		return 1
+	}
+	defer src.Close()
+
+	dst, err := os.Create(targetPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating file: %v\n", err)
+		return 1
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		fmt.Fprintf(os.Stderr, "Error copying binary: %v\n", err)
+		dst.Close()
+		os.Remove(targetPath)
+		return 1
+	}
+	dst.Close()
+
+	if runtime.GOOS != "windows" {
+		os.Chmod(targetPath, 0755)
+	}
+
+	fmt.Printf("OK   Installed to %s\n", targetPath)
+	return addToPath(filepath.Dir(targetPath))
+}
+
+func addToPath(targetDir string) int {
+	if runtime.GOOS == "windows" {
+		currentPath := os.Getenv("Path")
+		if !strings.Contains(currentPath, targetDir) {
+			newPath := currentPath + ";" + targetDir
+			os.Setenv("Path", newPath)
+			fmt.Println("OK   Added to PATH for this session.")
+			fmt.Println(">>> To make it permanent, run the following in an Administrator PowerShell:")
+			fmt.Printf("    [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path','User')+'%s;%s','User')\n", ";", targetDir)
+			fmt.Println("    Or run: installer.ps1")
+		} else {
+			fmt.Println("OK   Already in PATH.")
+		}
+	} else {
+		rcFile := ""
+		switch {
+		case os.Getenv("SHELL") != "" && strings.Contains(os.Getenv("SHELL"), "zsh"):
+			rcFile = filepath.Join(homeDir(), ".zshrc")
+		case os.Getenv("SHELL") != "" && strings.Contains(os.Getenv("SHELL"), "bash"):
+			if runtime.GOOS == "darwin" {
+				rcFile = filepath.Join(homeDir(), ".bash_profile")
+			} else {
+				rcFile = filepath.Join(homeDir(), ".bashrc")
+			}
+		default:
+			rcFile = filepath.Join(homeDir(), ".profile")
+		}
+
+		line := fmt.Sprintf("export PATH=\"$PATH:%s\"", targetDir)
+		data, _ := os.ReadFile(rcFile)
+		if !strings.Contains(string(data), targetDir) {
+			f, err := os.OpenFile(rcFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: could not write to %s: %v\n", rcFile, err)
+				fmt.Printf("Add this line manually:\n  %s\n", line)
+			} else {
+				defer f.Close()
+				fmt.Fprintln(f)
+				fmt.Fprintln(f, "# Added by NeoArc installer")
+				fmt.Fprintln(f, line)
+				fmt.Printf("OK   Added to PATH in %s\n", rcFile)
+				fmt.Println(">>> Run 'source", rcFile, "' or restart your terminal.")
+			}
+		} else {
+			fmt.Println("OK   Already in PATH.")
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("========================================")
+	fmt.Println("  NeoArc installed successfully!")
+	fmt.Printf("  Binary : %s\n", targetDir)
+	fmt.Println("  Usage  : neoarc help")
+	fmt.Println("========================================")
+	return 0
+}
+
 func selfUninstall() int {
 	configDir := ConfigDir()
 
@@ -449,6 +645,7 @@ Usage:
   neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
 
 Standalone flags:
+  --install                          : Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                    : Remove NeoArc config, cache, and binary from the system
 
 Options (place before <alias>):
@@ -515,6 +712,10 @@ func Run(args []string) int {
 			aliases = []string{}
 		}
 		return GenerateCompletion(args[2], aliases)
+	}
+
+	if args[1] == "--install" {
+		return selfInstall()
 	}
 
 	if args[1] == "--selfuninstall" {

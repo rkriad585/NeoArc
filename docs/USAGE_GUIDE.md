@@ -29,6 +29,7 @@ neoarc config http://localhost:59248
 
 | Flag | Description |
 |------|-------------|
+| `--install` | Download and install NeoArc to `~/.config/neostore/neoarc/bin/` |
 | `--selfuninstall` | Remove NeoArc config, cache, and binary from the system |
 
 ### Flags

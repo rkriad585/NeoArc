@@ -136,6 +136,16 @@ neoarc --dry-run deploy-staging
 neoarc --yes deploy-staging
 ```
 
+## Install
+
+Install NeoArc to `~/.config/neostore/neoarc/bin/` automatically:
+
+```bash
+neoarc --install
+```
+
+This downloads the latest release binary for your platform, copies it to the install directory, and adds the directory to your PATH. If the download fails (e.g., the release tag doesn't exist yet), it falls back to copying the current running binary.
+
 ## Uninstall
 
 Remove NeoArc config, cache, and binary from your system:

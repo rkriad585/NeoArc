@@ -283,6 +283,7 @@ neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
 
 Standalone flags:
+  --install                        — Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                  — Remove NeoArc config, cache, and binary
 
 Flags (place before alias):

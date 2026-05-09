@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -584,6 +585,68 @@ func TestRunSelfUninstall(t *testing.T) {
 
 	if _, err := os.Stat(cfgDir); !os.IsNotExist(err) {
 		t.Fatal("expected config directory to be removed")
+	}
+}
+
+func TestInstallDir(t *testing.T) {
+	d := installDir()
+	if !strings.Contains(d, ".config") || !strings.Contains(d, "neostore") {
+		t.Fatalf("expected install dir to contain .config/neostore, got %q", d)
+	}
+}
+
+func TestRunSelfInstall(t *testing.T) {
+	code := Run([]string{"neoarc", "--install"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0 (fallback copy), got %d", code)
+	}
+
+	targetDir := installDir()
+	binName := "neoarc"
+	if runtime.GOOS == "windows" {
+		binName = "neoarc.exe"
+	}
+	targetPath := filepath.Join(targetDir, binName)
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		t.Fatal("expected binary to be installed")
+	}
+}
+
+func TestHelpContainsInstall(t *testing.T) {
+	r, w, _ := os.Pipe()
+	old := os.Stdout
+	os.Stdout = w
+
+	ShowHelp()
+
+	w.Close()
+	os.Stdout = old
+
+	var buf strings.Builder
+	io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "--install") {
+		t.Fatal("help should contain --install flag")
+	}
+}
+
+func TestCopySelf(t *testing.T) {
+	d := t.TempDir()
+	target := filepath.Join(d, "neoarc.copy")
+
+	code := copySelf(target)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	if _, err := os.Stat(target); os.IsNotExist(err) {
+		t.Fatal("expected binary to be copied")
+	}
+
+	info, _ := os.Stat(target)
+	if info.Size() == 0 {
+		t.Fatal("expected non-empty copied binary")
 	}
 }
 
