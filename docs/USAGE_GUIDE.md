@@ -25,6 +25,12 @@ neoarc config http://localhost:59248
 | `neoarc run <alias> [args...]` | Fetch and execute alias with args |
 | `neoarc <alias> [args...]` | Shorthand for `run` |
 
+### Standalone Flags
+
+| Flag | Description |
+|------|-------------|
+| `--selfuninstall` | Remove NeoArc config, cache, and binary from the system |
+
 ### Flags
 
 Flags must be placed before the alias name:

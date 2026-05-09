@@ -136,6 +136,26 @@ neoarc --dry-run deploy-staging
 neoarc --yes deploy-staging
 ```
 
+## Uninstall
+
+Remove NeoArc config, cache, and binary from your system:
+
+```bash
+# Via the CLI (self-uninstall)
+neoarc --selfuninstall
+```
+
+This deletes the config directory (`~/.neoarc/` or `%APPDATA%/neoarc/`), removes the binary on Linux/macOS, and creates a deferred delete script on Windows. PATH removal instructions are printed after the operation.
+
+You can also use the installer scripts:
+```bash
+# Linux / macOS
+./installer.sh --selfuninstall
+
+# Windows
+.\installer.ps1 --selfuninstall
+```
+
 ## Configuration
 
 The CLI stores configuration in a platform-specific directory:

@@ -374,6 +374,67 @@ func FetchAliases() ([]string, error) {
 	return listResp.Aliases, nil
 }
 
+func selfUninstall() int {
+	configDir := ConfigDir()
+
+	fmt.Println(">>> Uninstalling NeoArc...")
+
+	if _, err := os.Stat(configDir); err == nil {
+		if err := os.RemoveAll(configDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Error removing config directory: %v\n", err)
+			return 1
+		}
+		fmt.Println("OK   Removed config directory:", configDir)
+	} else {
+		fmt.Println("OK   No config directory found.")
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error resolving binary path: %v\n", err)
+		return 1
+	}
+
+	realPath, err := filepath.EvalSymlinks(exePath)
+	if err == nil {
+		exePath = realPath
+	}
+
+	if runtime.GOOS == "windows" {
+		batContent := fmt.Sprintf("@echo off\r\ntimeout /t 1 /nobreak >nul\r\ndel /f /q \"%s\"\r\nif exist \"%s\" (echo ERR Failed to delete binary) else (echo OK   Deleted binary: %s)\r\ndel /f /q \"%%~f0\"\r\n", exePath, exePath, exePath)
+		batPath := filepath.Join(os.TempDir(), "neoarc-uninstall.bat")
+		if err := os.WriteFile(batPath, []byte(batContent), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating uninstall script: %v\n", err)
+			fmt.Println("Please manually delete:", exePath)
+			return 1
+		}
+		fmt.Println("OK   Uninstall script created. Binary will be deleted shortly.")
+		cmd := exec.Command("cmd", "/C", "start", "/B", batPath)
+		cmd.Stderr = os.Stderr
+		cmd.Start()
+	} else {
+		if err := os.Remove(exePath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error deleting binary: %v\n", err)
+			fmt.Println("Please manually delete:", exePath)
+			return 1
+		}
+		fmt.Println("OK   Deleted binary:", exePath)
+	}
+
+	fmt.Println()
+	fmt.Println("To remove NeoArc from your PATH, edit your shell rc file")
+	fmt.Println("and delete the line containing 'neostore/neoarc/bin'.")
+
+	if runtime.GOOS == "windows" {
+		fmt.Println("Or run: installer.ps1 --selfuninstall")
+	} else {
+		fmt.Println("Or run: installer.sh --selfuninstall")
+	}
+
+	fmt.Println("Restart your terminal for PATH changes to take effect.")
+	return 0
+}
+
 func ShowHelp() {
 	fmt.Println(`NeoArc - Cross-Platform Alias Executor
 Usage:
@@ -386,6 +447,9 @@ Usage:
   neoarc config secure               : Disable insecure TLS (default, verify certs)
   neoarc help                        : Show help menu
   neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
+
+Standalone flags:
+  --selfuninstall                    : Remove NeoArc config, cache, and binary from the system
 
 Options (place before <alias>):
   --dry-run                          : Print the alias code without executing
@@ -451,6 +515,10 @@ func Run(args []string) int {
 			aliases = []string{}
 		}
 		return GenerateCompletion(args[2], aliases)
+	}
+
+	if args[1] == "--selfuninstall" {
+		return selfUninstall()
 	}
 
 	if args[1] == "_list_aliases" {

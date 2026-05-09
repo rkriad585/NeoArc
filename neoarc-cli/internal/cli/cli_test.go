@@ -567,3 +567,41 @@ func TestFetchAliasesConnectionError(t *testing.T) {
 		t.Fatal("expected nil aliases on error")
 	}
 }
+
+func TestRunSelfUninstall(t *testing.T) {
+	d := tempDir(t)
+	os.Setenv("APPDATA", d)
+	os.Setenv("HOME", d)
+
+	cfgDir := filepath.Join(d, "neoarc")
+	os.MkdirAll(cfgDir, 0755)
+	os.WriteFile(filepath.Join(cfgDir, "config.json"), []byte(`{"server_url":"http://test:1234"}`), 0644)
+
+	code := Run([]string{"neoarc", "--selfuninstall"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+
+	if _, err := os.Stat(cfgDir); !os.IsNotExist(err) {
+		t.Fatal("expected config directory to be removed")
+	}
+}
+
+func TestHelpContainsSelfUninstall(t *testing.T) {
+	r, w, _ := os.Pipe()
+	old := os.Stdout
+	os.Stdout = w
+
+	ShowHelp()
+
+	w.Close()
+	os.Stdout = old
+
+	var buf strings.Builder
+	io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "--selfuninstall") {
+		t.Fatal("help should contain --selfuninstall flag")
+	}
+}

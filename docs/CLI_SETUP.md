@@ -65,6 +65,28 @@ neoarc help
 You should see the NeoArc help output. If the binary is not on your PATH,
 move it to a directory in your PATH or add the `bin/` folder to your PATH.
 
+## One-Line Installation
+
+**Unix (Linux / macOS):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1'))
+```
+
+Installs the binary to `~/.config/neostore/neoarc/bin/neoarc` and adds it to your PATH.
+
+## Uninstall
+
+```bash
+./installer.sh --selfuninstall          # Unix
+.\installer.ps1 --selfuninstall         # Windows
+neoarc --selfuninstall                  # CLI (if accessible)
+```
+
 ## Next Steps
 
 - [Usage Guide](USAGE_GUIDE.md) — configure the CLI and run aliases

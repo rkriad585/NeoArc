@@ -240,6 +240,35 @@ docker run -d \
 
 ---
 
+## Installation (One-Line)
+
+Download and install the latest NeoArc binary with a single command:
+
+**Unix (Linux / macOS):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh | sh
+```
+
+**Windows (PowerShell):**
+```powershell
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1'))
+```
+
+The binary is installed to `~/.config/neostore/neoarc/bin/neoarc` and the directory is added to your PATH.
+
+### Uninstall
+
+```bash
+# Using the installer script
+./installer.sh --selfuninstall          # Linux / macOS
+.\installer.ps1 --selfuninstall         # Windows
+
+# Or using the CLI itself (if still accessible)
+neoarc --selfuninstall
+```
+
+---
+
 ## CLI Usage
 
 ```
@@ -252,6 +281,9 @@ neoarc config insecure             — Skip TLS certificate verification
 neoarc config secure               — Re-enable TLS verification
 neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
+
+Standalone flags:
+  --selfuninstall                  — Remove NeoArc config, cache, and binary
 
 Flags (place before alias):
   --dry-run                        — Print alias code without executing

@@ -5,14 +5,17 @@
   Detects the system architecture, downloads the correct NeoArc binary from GitHub,
   stores it in ~\.config\neostore\neoarc\bin\neoarc.exe, and adds that directory
   to the user's PATH.
+  Use --selfuninstall to remove NeoArc from the system.
 .EXAMPLE
-  .\installer.ps1
+  .\installer.ps1          # Install NeoArc
+  .\installer.ps1 --selfuninstall  # Uninstall NeoArc
 #>
 
 $ErrorActionPreference = "Stop"
 $Repo = "rkriad585/NeoArc"
 $Version = "v1.0.0"
 $InstallDir = "$env:USERPROFILE\.config\neostore\neoarc\bin"
+$InstallPath = "$InstallDir\neoarc.exe"
 
 function Write-Step {
     param([string]$Message)
@@ -30,6 +33,35 @@ function Write-Error {
     exit 1
 }
 
+# ---- Handle uninstall ----
+if ($args[0] -eq "--selfuninstall") {
+    Write-Step "Uninstalling NeoArc..."
+
+    if (Test-Path $InstallDir) {
+        Remove-Item -Recurse -Force $InstallDir
+        Write-Success "Removed $InstallDir"
+    } else {
+        Write-Success "No install directory found — nothing to remove."
+    }
+
+    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($currentPath -like "*$InstallDir*") {
+        $newPath = ($currentPath -split ";" | Where-Object { $_ -ne $InstallDir }) -join ";"
+        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+        Write-Success "Removed $InstallDir from user PATH"
+    } else {
+        Write-Success "Install directory not in PATH."
+    }
+
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host "  NeoArc has been uninstalled." -ForegroundColor Green
+    Write-Host "  Config and cache files have been removed." -ForegroundColor Gray
+    Write-Host "  Restart your terminal for PATH changes to take effect." -ForegroundColor Gray
+    Write-Host "========================================" -ForegroundColor Green
+    exit 0
+}
+
 # ---- Detect architecture ----
 $arch = $env:PROCESSOR_ARCHITECTURE
 if ($arch -eq "AMD64") {
@@ -42,7 +74,6 @@ if ($arch -eq "AMD64") {
 }
 
 $Url = "https://github.com/$Repo/releases/download/$Version/$Binary"
-$InstallPath = "$InstallDir\neoarc.exe"
 
 # ---- Create install directory ----
 Write-Step "Creating install directory: $InstallDir"
@@ -80,4 +111,6 @@ Write-Host "  NeoArc installed successfully!" -ForegroundColor Green
 Write-Host "  Binary : $InstallPath" -ForegroundColor Gray
 Write-Host "  Version: $Version" -ForegroundColor Gray
 Write-Host "  Usage  : neoarc help" -ForegroundColor Gray
+Write-Host "  To uninstall, run:" -ForegroundColor Gray
+Write-Host "    .\installer.ps1 --selfuninstall" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Green
