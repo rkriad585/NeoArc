@@ -526,10 +526,13 @@ func TestRunCompletionMissingArg(t *testing.T) {
 	}
 }
 
-func TestRunListAliasesConnectionError(t *testing.T) {
+func TestRunListAliasesAuthFail(t *testing.T) {
+	_ = tempDir(t)
+	Run([]string{"neoarc", "config", "http://localhost:1"})
+
 	code := Run([]string{"neoarc", "_list_aliases"})
-	if code != 1 {
-		t.Fatalf("expected exit code 1 (connection error), got %d", code)
+	if code != 0 {
+		t.Fatalf("expected exit code 0 (graceful fallback), got %d", code)
 	}
 }
 
@@ -566,6 +569,22 @@ func TestFetchAliasesConnectionError(t *testing.T) {
 	}
 	if aliases != nil {
 		t.Fatal("expected nil aliases on error")
+	}
+}
+
+func TestFetchAliasesAuthFail(t *testing.T) {
+	_ = tempDir(t)
+	Run([]string{"neoarc", "config", "http://localhost:59248"})
+
+	aliases, err := FetchAliases()
+	if err != nil {
+		t.Fatal("expected no error for auth failure")
+	}
+	if aliases == nil {
+		t.Fatal("expected empty slice, not nil")
+	}
+	if len(aliases) != 0 {
+		t.Fatal("expected empty aliases list on auth failure")
 	}
 }
 

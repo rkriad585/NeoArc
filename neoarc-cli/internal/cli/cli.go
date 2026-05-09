@@ -367,6 +367,10 @@ func FetchAliases() ([]string, error) {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
+	if resp.StatusCode == 401 || resp.StatusCode == 403 {
+		return []string{}, nil
+	}
+
 	if !listResp.Success {
 		return nil, fmt.Errorf("server error: %s", listResp.Message)
 	}
@@ -723,11 +727,7 @@ func Run(args []string) int {
 	}
 
 	if args[1] == "_list_aliases" {
-		aliases, err := FetchAliases()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error:", err)
-			return 1
-		}
+		aliases, _ := FetchAliases()
 		for _, a := range aliases {
 			fmt.Println(a)
 		}
