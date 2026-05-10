@@ -254,7 +254,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  <span style="font-family: monospace;">NEOARC v1.0.0</span>
+  <span style="font-family: monospace;">NEOARC v3.0.3</span>
 </p>
 
 Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan

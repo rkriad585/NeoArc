@@ -45,6 +45,7 @@ neoarc config insecure
 neoarc config secure
 neoarc config-token <token>
 neoarc completion <shell>
+neoarc update
 neoarc get <alias> [args...]
 neoarc run <alias> [args...]
 neoarc <alias> [args...]
@@ -77,6 +78,14 @@ neoarc config secure
 ```
 neoarc config-token ncl_abc123...
 ```
+
+**`neoarc update`** — Check for updates and replace the current binary with the latest release version.
+
+```
+neoarc update
+```
+
+The command fetches the latest version from GitHub, compares it to the current version, downloads the appropriate binary for your platform, and replaces the running executable (via deferred batch script on Windows).
 
 **`neoarc get <alias> [args...]`** — Fetch and display the alias command without executing it.
 
@@ -155,7 +164,7 @@ Remove NeoArc config, cache, and binary from your system:
 neoarc --selfuninstall
 ```
 
-This deletes the config directory (`~/.neoarc/` or `%APPDATA%/neoarc/`), removes the binary on Linux/macOS, and creates a deferred delete script on Windows. PATH removal instructions are printed after the operation.
+This deletes the config directory (`~/.config/neostore/neoarc/`), removes the binary on Linux/macOS, and creates a deferred delete script on Windows. PATH removal instructions are printed after the operation.
 
 You can also use the installer scripts:
 ```bash
@@ -168,12 +177,7 @@ You can also use the installer scripts:
 
 ## Configuration
 
-The CLI stores configuration in a platform-specific directory:
-
-| Platform | Config path |
-|----------|-------------|
-| Windows | `%APPDATA%/neoarc/` |
-| Unix | `~/.neoarc/` |
+The CLI stores configuration in `~/.config/neostore/neoarc/` on all platforms. Old paths (`%APPDATA%/neoarc/` on Windows, `~/.neoarc/` on Unix) are auto-migrated on first run.
 
 ### config.json
 
@@ -247,7 +251,7 @@ Supported exec types and their handlers:
 ### Test Suite
 
 ```bash
-go test ./internal/cli/... -v    # 30 unit tests
+go test ./internal/cli/... -v    # 40+ unit tests
 go test ./tests/... -v           # 3 integration tests (builds binary)
 ```
 
@@ -263,7 +267,7 @@ chmod +x build.sh
 ./build.sh
 ```
 
-The script reads `NEOARC_API_TOKEN` from `../neoarc-server/.env`, determines version via `git describe`, and cross-compiles for all supported targets.
+The script reads `NEOARC_API_TOKEN` from `../neoarc-server/.env`, reads version from the root `.version` file, and cross-compiles for all supported targets.
 
 ### Windows
 

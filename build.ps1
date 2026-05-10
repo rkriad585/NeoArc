@@ -5,9 +5,9 @@ $APP_NAME = "neoarc"
 # Read version from .version file
 $VERSION_FILE = Join-Path $PSScriptRoot ".version"
 if (Test-Path $VERSION_FILE) {
-    $VERSION = "v$(Get-Content $VERSION_FILE -Raw | ForEach-Object { $_.Trim() })"
+    $VERSION = "$(Get-Content $VERSION_FILE -Raw | ForEach-Object { $_.Trim() })"
 } else {
-    $VERSION = "0.0.0"
+    $VERSION = "v0.0.0"
 }
 
 $COMMIT = git rev-parse --short HEAD

@@ -12,8 +12,15 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
+)
+
+const (
+	ProjectName = "neoarc"
+	RepoPath    = "rkriad585/NeoArc"
+	RepoOwner   = "rkriad585"
 )
 
 var (
@@ -53,15 +60,45 @@ type TrustStore struct {
 }
 
 func ConfigDir() string {
-	var configDir string
-	if runtime.GOOS == "windows" {
-		configDir = filepath.Join(os.Getenv("APPDATA"), "neoarc")
-	} else {
-		homeDir, _ := os.UserHomeDir()
-		configDir = filepath.Join(homeDir, ".neoarc")
+	dir := filepath.Join(homeDir(), ".config", "neostore", ProjectName)
+	os.MkdirAll(dir, 0755)
+	return dir
+}
+
+func migrateOldConfig() {
+	newDir := ConfigDir()
+
+	oldDirs := []string{filepath.Join(os.Getenv("APPDATA"), ProjectName)}
+	if h, err := os.UserHomeDir(); err == nil {
+		oldDirs = append(oldDirs, filepath.Join(h, "."+ProjectName))
 	}
-	os.MkdirAll(configDir, 0755)
-	return configDir
+
+	for _, old := range oldDirs {
+		if old == "" || old == newDir {
+			continue
+		}
+		entries, err := os.ReadDir(old)
+		if err != nil {
+			continue
+		}
+		if len(entries) == 0 {
+			os.Remove(old)
+			continue
+		}
+		os.MkdirAll(newDir, 0755)
+		for _, e := range entries {
+			oldPath := filepath.Join(old, e.Name())
+			newPath := filepath.Join(newDir, e.Name())
+			if _, err := os.Stat(newPath); err == nil {
+				continue
+			}
+			os.Rename(oldPath, newPath)
+		}
+		remaining, _ := os.ReadDir(old)
+		if len(remaining) == 0 {
+			os.Remove(old)
+		}
+	}
 }
 
 func ConfigPath() string {
@@ -77,6 +114,7 @@ func TrustPath() string {
 }
 
 func LoadConfig() Config {
+	migrateOldConfig()
 	path := ConfigPath()
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -95,6 +133,7 @@ func SaveConfig(cfg Config) {
 }
 
 func LoadCache() AliasCache {
+	migrateOldConfig()
 	path := CachePath()
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -114,6 +153,7 @@ func SaveCache(c AliasCache) {
 }
 
 func LoadTrusted() TrustStore {
+	migrateOldConfig()
 	path := TrustPath()
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -403,11 +443,7 @@ func resolveVersion(repo string) string {
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	v := strings.TrimSpace(string(body))
-	if v == "" {
-		return ""
-	}
-	return "v" + v
+	return strings.TrimSpace(string(body))
 }
 
 func selfInstall() int {
@@ -658,6 +694,209 @@ func selfUninstall() int {
 	return 0
 }
 
+func fetchLatestVersion() string {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(fmt.Sprintf("https://raw.githubusercontent.com/%s/main/.version", RepoPath))
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	v := strings.TrimSpace(string(body))
+	if v == "" {
+		return ""
+	}
+	return v
+}
+
+func compareVersions(a, b string) int {
+	a = strings.TrimPrefix(a, "v")
+	b = strings.TrimPrefix(b, "v")
+	partsA := strings.Split(a, ".")
+	partsB := strings.Split(b, ".")
+	maxLen := len(partsA)
+	if len(partsB) > maxLen {
+		maxLen = len(partsB)
+	}
+	for i := 0; i < maxLen; i++ {
+		var na, nb int
+		if i < len(partsA) {
+			na, _ = strconv.Atoi(partsA[i])
+		}
+		if i < len(partsB) {
+			nb, _ = strconv.Atoi(partsB[i])
+		}
+		if na < nb {
+			return -1
+		}
+		if na > nb {
+			return 1
+		}
+	}
+	return 0
+}
+
+func resolveDownloadName() string {
+	switch runtime.GOOS {
+	case "windows":
+		return ProjectName + "-windows-amd64.exe"
+	case "darwin":
+		if runtime.GOARCH == "arm64" {
+			return ProjectName + "-darwin-arm64"
+		}
+		return ProjectName + "-darwin-amd64"
+	case "linux":
+		if runtime.GOARCH == "arm64" {
+			return ProjectName + "-linux-arm64"
+		}
+		return ProjectName + "-linux-amd64"
+	}
+	return ""
+}
+
+func selfUpdate() int {
+	fmt.Println(">>> Checking for updates...")
+
+	current := resolveVersion(RepoPath)
+	if current == "" {
+		fmt.Fprintln(os.Stderr, "Error: could not determine current version.")
+		return 1
+	}
+
+	latest := fetchLatestVersion()
+	if latest == "" {
+		fmt.Fprintln(os.Stderr, "Error: could not fetch latest version from GitHub.")
+		return 1
+	}
+
+	fmt.Printf("    Current: %s\n", current)
+	fmt.Printf("    Latest : %s\n", latest)
+
+	cmp := compareVersions(current, latest)
+	if cmp >= 0 {
+		fmt.Println("OK   Already up to date.")
+		return 0
+	}
+
+	fmt.Printf(">>> New version %s available. Updating...\n", latest)
+
+	downloadName := resolveDownloadName()
+	if downloadName == "" {
+		fmt.Fprintln(os.Stderr, "Error: unsupported platform:", runtime.GOOS+"/"+runtime.GOARCH)
+		return 1
+	}
+
+	url := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", RepoPath, latest, downloadName)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: download failed: %v\n", err)
+		return 1
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Fprintf(os.Stderr, "Error: download failed (HTTP %d): %s\n", resp.StatusCode, strings.TrimSpace(string(body)))
+		return 1
+	}
+
+	tmpFile, err := os.CreateTemp("", ProjectName+"-update-*")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: could not create temp file: %v\n", err)
+		return 1
+	}
+	tmpPath := tmpFile.Name()
+
+	written, err := io.Copy(tmpFile, resp.Body)
+	tmpFile.Close()
+	if err != nil {
+		os.Remove(tmpPath)
+		fmt.Fprintf(os.Stderr, "Error: could not write update: %v\n", err)
+		return 1
+	}
+	if written == 0 {
+		os.Remove(tmpPath)
+		fmt.Fprintln(os.Stderr, "Error: downloaded empty file.")
+		return 1
+	}
+
+	if runtime.GOOS != "windows" {
+		os.Chmod(tmpPath, 0755)
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		os.Remove(tmpPath)
+		fmt.Fprintf(os.Stderr, "Error: could not resolve binary path: %v\n", err)
+		return 1
+	}
+
+	if runtime.GOOS == "windows" {
+		return updateWindows(tmpPath, exePath)
+	}
+
+	if err := os.Rename(tmpPath, exePath); err != nil {
+		os.Remove(tmpPath)
+		fmt.Fprintf(os.Stderr, "Error: could not replace binary: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("OK   Updated to %s (%s)\n", latest, exePath)
+	return 0
+}
+
+func updateWindows(tmpPath, exePath string) int {
+	binDir := installDir()
+	binPath := filepath.Join(binDir, ProjectName+".exe")
+	os.MkdirAll(binDir, 0755)
+
+	src, _ := os.Open(tmpPath)
+	dst, _ := os.Create(binPath)
+	if src != nil && dst != nil {
+		io.Copy(dst, src)
+		dst.Close()
+		src.Close()
+		fmt.Printf("OK   Installed to %s\n", binPath)
+	} else {
+		if src != nil {
+			src.Close()
+		}
+		if dst != nil {
+			dst.Close()
+		}
+	}
+
+	batContent := fmt.Sprintf(`@echo off
+timeout /t 2 /nobreak >nul
+copy /y "%s" "%s" >nul 2>&1
+if errorlevel 1 (
+    echo ERR Failed to update binary
+) else (
+    echo OK   Binary updated successfully: %s
+)
+del /f /q "%s" 2>nul
+del /f /q "%%~f0"
+`, tmpPath, exePath, exePath, tmpPath)
+
+	batPath := filepath.Join(os.TempDir(), ProjectName+"-update.bat")
+	if err := os.WriteFile(batPath, []byte(batContent), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not create update script: %v\n", err)
+		fmt.Printf("Update binary at: %s\n", tmpPath)
+		fmt.Printf("Manually copy: copy /y \"%s\" \"%s\"\n", tmpPath, exePath)
+		return 1
+	}
+
+	exec.Command("cmd", "/C", "start", "/B", batPath).Start()
+
+	fmt.Println("\nOK   Update applied. The new binary will replace the current one in 2 seconds.")
+	fmt.Println("     Restart your terminal to use the updated version.")
+
+	addToPath(binDir)
+	return 0
+}
+
 func ShowHelp() {
 	fmt.Println(`NeoArc - Cross-Platform Alias Executor
 Usage:
@@ -668,6 +907,7 @@ Usage:
   neoarc config-token <tok>          : Set the API authentication token
   neoarc config insecure             : Enable insecure TLS (skip certificate verify)
   neoarc config secure               : Disable insecure TLS (default, verify certs)
+  neoarc update                      : Check for updates and self-update the binary
   neoarc help                        : Show help menu
   neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
 
@@ -684,9 +924,13 @@ Arguments after <alias> are passed through to the executed command.
   powershell : accessible via $args[0], $args[1]
   python     : accessible via sys.argv[1], sys.argv[2]
   cmd        : accessible via %1, %2`)
+
+	fmt.Printf("\nVersion  : %s\n", resolveVersion(RepoPath))
 }
 
 func Run(args []string) int {
+	migrateOldConfig()
+
 	if len(args) < 2 {
 		ShowHelp()
 		return 0
@@ -747,6 +991,10 @@ func Run(args []string) int {
 
 	if args[1] == "--selfuninstall" {
 		return selfUninstall()
+	}
+
+	if args[1] == "update" {
+		return selfUpdate()
 	}
 
 	if args[1] == "_list_aliases" {

@@ -7,9 +7,9 @@ APP_NAME="neoarc"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION_FILE="${SCRIPT_DIR}/.version"
 if [ -f "$VERSION_FILE" ]; then
-    VERSION="v$(cat "$VERSION_FILE" | tr -d '[:space:]')"
+    VERSION="$(cat "$VERSION_FILE" | tr -d '[:space:]')"
 else
-    VERSION="0.0.0"
+    VERSION="v0.0.0"
 fi
 
 COMMIT=$(git rev-parse --short HEAD)

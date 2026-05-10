@@ -35,7 +35,7 @@ func genBash(aliases []string) int {
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-	opts="get run config config-token help completion"
+	opts="get run config config-token help completion update"
 
 	if [[ ${prev} == "completion" ]]; then
 		COMPREPLY=($(compgen -W "bash zsh powershell" -- ${cur}))
@@ -78,7 +78,7 @@ func genZsh(aliases []string) int {
 
 _neoarc_completions() {
 	local -a opts
-	opts=("get:Print the code for an alias" "run:Run an alias command" "config:Set server URL or options" "config-token:Set API token" "help:Show help" "completion:Generate completion script")
+	opts=("get:Print the code for an alias" "run:Run an alias command" "config:Set server URL or options" "config-token:Set API token" "help:Show help" "completion:Generate completion script" "update:Self-update the binary")
 
 	_arguments -C \
 		'--dry-run[Print the alias code without executing]' \
@@ -124,7 +124,7 @@ using namespace System.Collections.Generic
 Register-ArgumentCompleter -Native -CommandName neoarc -ScriptBlock {
 	param($wordToComplete, $commandAst, $cursorPosition)
 
-	$commands = @("get", "run", "config", "config-token", "help", "completion")
+	$commands = @("get", "run", "config", "config-token", "help", "completion", "update")
 	$completionCmd = $commandAst.CommandElements | Where-Object { $_ -is [CommandElementAst] -and $_.Extent.Text -notlike "-*" }
 	$currentIndex = $commandAst.CommandElements.IndexOf($commandAst.CommandElements | Where-Object { $_.Extent.EndOffset -eq $cursorPosition })
 	$prevIndex = $currentIndex - 1

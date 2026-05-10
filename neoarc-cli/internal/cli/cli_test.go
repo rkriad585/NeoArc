@@ -16,6 +16,7 @@ func tempDir(t *testing.T) string {
 	d := t.TempDir()
 	os.Setenv("APPDATA", d)
 	os.Setenv("HOME", d)
+	os.Setenv("USERPROFILE", d)
 	return d
 }
 
@@ -43,7 +44,7 @@ func TestConfigLoadSave(t *testing.T) {
 		t.Fatal("expected insecure TLS to be true")
 	}
 
-	path := filepath.Join(d, "neoarc", "config.json")
+	path := filepath.Join(d, ".config", "neostore", "neoarc", "config.json")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		t.Fatal("config.json was not created")
 	}
@@ -88,7 +89,7 @@ func TestCacheLoadSave(t *testing.T) {
 func TestCacheCorruptedFile(t *testing.T) {
 	tempDir(t)
 
-	path := filepath.Join(os.Getenv("APPDATA"), "neoarc", "alias_cache.json")
+	path := filepath.Join(os.Getenv("USERPROFILE"), ".config", "neostore", "neoarc", "alias_cache.json")
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte("{broken json"), 0644)
 
@@ -101,7 +102,7 @@ func TestCacheCorruptedFile(t *testing.T) {
 func TestCacheNilEntries(t *testing.T) {
 	tempDir(t)
 
-	path := filepath.Join(os.Getenv("APPDATA"), "neoarc", "alias_cache.json")
+	path := filepath.Join(os.Getenv("USERPROFILE"), ".config", "neostore", "neoarc", "alias_cache.json")
 	os.MkdirAll(filepath.Dir(path), 0755)
 	os.WriteFile(path, []byte(`{}`), 0644)
 
@@ -236,7 +237,7 @@ func TestCacheTTL(t *testing.T) {
 func TestConfigPaths(t *testing.T) {
 	d := tempDir(t)
 	cfgDir := ConfigDir()
-	expected := filepath.Join(d, "neoarc")
+	expected := filepath.Join(d, ".config", "neostore", "neoarc")
 	if cfgDir != expected {
 		t.Fatalf("expected config dir %q, got %q", expected, cfgDir)
 	}
@@ -253,7 +254,7 @@ func TestConfigPaths(t *testing.T) {
 
 func TestDirCreation(t *testing.T) {
 	d := tempDir(t)
-	cfgDir := filepath.Join(d, "neoarc")
+	cfgDir := filepath.Join(d, ".config", "neostore", "neoarc")
 	os.RemoveAll(cfgDir)
 
 	result := ConfigDir()
@@ -590,10 +591,8 @@ func TestFetchAliasesAuthFail(t *testing.T) {
 
 func TestRunSelfUninstall(t *testing.T) {
 	d := tempDir(t)
-	os.Setenv("APPDATA", d)
-	os.Setenv("HOME", d)
 
-	cfgDir := filepath.Join(d, "neoarc")
+	cfgDir := filepath.Join(d, ".config", "neostore", "neoarc")
 	os.MkdirAll(cfgDir, 0755)
 	os.WriteFile(filepath.Join(cfgDir, "config.json"), []byte(`{"server_url":"http://test:1234"}`), 0644)
 
@@ -685,5 +684,97 @@ func TestHelpContainsSelfUninstall(t *testing.T) {
 
 	if !strings.Contains(output, "--selfuninstall") {
 		t.Fatal("help should contain --selfuninstall flag")
+	}
+}
+
+func TestHelpContainsUpdate(t *testing.T) {
+	r, w, _ := os.Pipe()
+	old := os.Stdout
+	os.Stdout = w
+
+	ShowHelp()
+
+	w.Close()
+	os.Stdout = old
+
+	var buf strings.Builder
+	io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "update") {
+		t.Fatal("help should contain update command")
+	}
+}
+
+func TestRunUpdate(t *testing.T) {
+	_ = tempDir(t)
+	Version = "v0.0.1"
+	defer func() { Version = "" }()
+
+	code := Run([]string{"neoarc", "update"})
+	if code != 1 {
+		t.Fatalf("expected exit code 1 (outdated), got %d", code)
+	}
+}
+
+func TestRunUpdateAlreadyLatest(t *testing.T) {
+	_ = tempDir(t)
+
+	code := Run([]string{"neoarc", "update"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0 (already up to date), got %d", code)
+	}
+}
+
+func TestCompareVersions(t *testing.T) {
+	tests := []struct {
+		a, b string
+		want int
+	}{
+		{"v1.0.0", "v1.0.0", 0},
+		{"v1.0.0", "v1.0.1", -1},
+		{"v1.0.1", "v1.0.0", 1},
+		{"v1.0.0", "v2.0.0", -1},
+		{"v2.0.0", "v1.0.0", 1},
+		{"v1.0", "v1.0.0", 0},
+		{"v1.0.0", "v1.0", 0},
+		{"1.0.0", "v1.0.0", 0},
+		{"v1.0.0", "1.0.0", 0},
+	}
+
+	for _, tt := range tests {
+		got := compareVersions(tt.a, tt.b)
+		if got != tt.want {
+			t.Errorf("compareVersions(%q, %q) = %d, want %d", tt.a, tt.b, got, tt.want)
+		}
+	}
+}
+
+func TestResolveDownloadName(t *testing.T) {
+	name := resolveDownloadName()
+	if name == "" {
+		t.Fatal("expected non-empty download name")
+	}
+	if !strings.Contains(name, "neoarc-") {
+		t.Fatal("expected download name to contain neoarc-")
+	}
+}
+
+func TestMigrationFromOldPaths(t *testing.T) {
+	d := tempDir(t)
+	oldDir := filepath.Join(d, "neoarc")
+	os.MkdirAll(oldDir, 0755)
+	oldCfg := filepath.Join(oldDir, "config.json")
+	os.WriteFile(oldCfg, []byte(`{"server_url":"http://migrated:1234"}`), 0644)
+
+	cfg := LoadConfig()
+	if cfg.ServerURL != "http://migrated:1234" {
+		t.Fatalf("expected migrated config, got %q", cfg.ServerURL)
+	}
+
+	newDir := filepath.Join(d, ".config", "neostore", "neoarc")
+	newCfg := filepath.Join(newDir, "config.json")
+	if _, err := os.Stat(newCfg); os.IsNotExist(err) {
+		t.Fatal("expected config to be migrated to new directory")
 	}
 }

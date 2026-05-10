@@ -6,71 +6,51 @@
 
 set -eu
 
-REPO="rkriad585/NeoArc"
-# Read version from .version file (local or GitHub raw)
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [ -f "${SCRIPT_DIR}/.version" ]; then
-    VERSION="v$(cat "${SCRIPT_DIR}/.version" | tr -d '[:space:]')"
-elif command -v curl >/dev/null 2>&1; then
-    VERSION="v$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/.version" 2>/dev/null | tr -d '[:space:]')"
-elif command -v wget >/dev/null 2>&1; then
-    VERSION="v$(wget -qO- "https://raw.githubusercontent.com/${REPO}/main/.version" 2>/dev/null | tr -d '[:space:]')"
-else
-    VERSION=""
-fi
-INSTALL_DIR="${HOME}/.config/neostore/neoarc/bin"
-BINARY="neoarc"
+PROJECT_NAME="neoarc"
+REPO_OWNER="rkriad585"
+REPO="${REPO_OWNER}/${PROJECT_NAME}"
+INSTALL_DIR="${HOME}/.config/neostore/${PROJECT_NAME}/bin"
+BINARY="${PROJECT_NAME}"
 INSTALL_PATH="${INSTALL_DIR}/${BINARY}"
 
-# ---- Uninstall ----
-if [ "${1:-}" = "--selfuninstall" ]; then
-    echo ">>> Uninstalling NeoArc..."
-
-    if [ -d "${INSTALL_DIR}" ]; then
-        rm -rf "${INSTALL_DIR}"
-        echo "OK   Removed ${INSTALL_DIR}"
-    else
-        echo "OK   No install directory found — nothing to remove."
-    fi
-
-    # Remove from shell rc files
-    for RC in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.bash_profile" "${HOME}/.profile"; do
-        if [ -f "${RC}" ]; then
-            if grep -qsF "${INSTALL_DIR}" "${RC}" 2>/dev/null; then
-                # Use a temp file to avoid sed compatibility issues
-                grep -vF "${INSTALL_DIR}" "${RC}" | grep -v "# Added by NeoArc installer" > "${RC}.tmp" && mv "${RC}.tmp" "${RC}"
-                echo "OK   Removed PATH entry from ${RC}"
-            fi
-        fi
-    done
-
-    echo ""
-    echo "========================================"
-    echo "  NeoArc has been uninstalled."
-    echo "  Config and cache files have been removed."
-    echo "  Restart your terminal or run 'exec \$SHELL' for PATH changes to take effect."
-    echo "========================================"
-    exit 0
+# ---- Resolve version from GitHub raw .version file ----
+echo ">>> Resolving latest version..."
+if command -v curl >/dev/null 2>&1; then
+    VERSION="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/.version" 2>/dev/null | tr -d '[:space:]')"
+elif command -v wget >/dev/null 2>&1; then
+    VERSION="$(wget -qO- "https://raw.githubusercontent.com/${REPO}/main/.version" 2>/dev/null | tr -d '[:space:]')"
+else
+    echo "Error: Neither curl nor wget found."
+    exit 1
 fi
+
+if [ -z "${VERSION}" ]; then
+    echo "Error: Could not determine version from GitHub."
+    exit 1
+fi
+echo "OK   Version: ${VERSION}"
 
 # ---- Detect OS + architecture ----
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 
+echo ">>> Detecting system architecture..."
 case "${OS}" in
     linux)
         case "${ARCH}" in
-            x86_64|amd64)  DOWNLOAD="neoarc-linux-amd64"  ;;
-            aarch64|arm64)  DOWNLOAD="neoarc-linux-arm64"  ;;
-            *)              echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+            x86_64|amd64) DOWNLOAD="${PROJECT_NAME}-linux-amd64"    ;;
+            aarch64|arm64) DOWNLOAD="${PROJECT_NAME}-linux-arm64"   ;;
+            *)            echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
         esac
+        echo "OK   Architecture: ${ARCH}"
         ;;
     darwin)
         case "${ARCH}" in
-            x86_64|amd64)  DOWNLOAD="neoarc-darwin-amd64"  ;;
-            arm64)         DOWNLOAD="neoarc-darwin-arm64"  ;;
-            *)             echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
+            x86_64|amd64) DOWNLOAD="${PROJECT_NAME}-darwin-amd64"   ;;
+            arm64)        DOWNLOAD="${PROJECT_NAME}-darwin-arm64"   ;;
+            *)            echo "Unsupported architecture: ${ARCH}"; exit 1 ;;
         esac
+        echo "OK   Architecture: ${ARCH}"
         ;;
     *)
         echo "Unsupported OS: ${OS}. Use installer.ps1 on Windows."
@@ -78,10 +58,32 @@ case "${OS}" in
         ;;
 esac
 
-if [ -n "${VERSION}" ]; then
-    URL="https://github.com/${REPO}/releases/download/${VERSION}/${DOWNLOAD}"
-else
-    URL="https://github.com/${REPO}/releases/latest/download/${DOWNLOAD}"
+URL="https://github.com/${REPO}/releases/download/${VERSION}/${DOWNLOAD}"
+
+# ---- Handle uninstall ----
+if [ "${1:-}" = "--selfuninstall" ]; then
+    echo ">>> Uninstalling ${PROJECT_NAME}..."
+    if [ -d "${INSTALL_DIR}" ]; then
+        rm -rf "${INSTALL_DIR}"
+        echo "OK   Removed ${INSTALL_DIR}"
+    else
+        echo "OK   No install directory found."
+    fi
+
+    for RC in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.bash_profile" "${HOME}/.profile"; do
+        if [ -f "${RC}" ]; then
+            if grep -qsF "${INSTALL_DIR}" "${RC}" 2>/dev/null; then
+                grep -vF "${INSTALL_DIR}" "${RC}" | grep -v "# Added by ${PROJECT_NAME} installer" > "${RC}.tmp" && mv "${RC}.tmp" "${RC}"
+                echo "OK   Removed PATH entry from ${RC}"
+            fi
+        fi
+    done
+
+    echo ""
+    echo "========================================"
+    echo "  ${PROJECT_NAME} has been uninstalled."
+    echo "========================================"
+    exit 0
 fi
 
 # ---- Create install directory ----
@@ -95,7 +97,7 @@ if command -v curl >/dev/null 2>&1; then
 elif command -v wget >/dev/null 2>&1; then
     wget -q -O "${INSTALL_PATH}" "${URL}"
 else
-    echo "Error: Neither curl nor wget found. Please install one of them."
+    echo "Error: Neither curl nor wget found."
     exit 1
 fi
 
@@ -104,7 +106,6 @@ if [ ! -f "${INSTALL_PATH}" ]; then
     exit 1
 fi
 
-# ---- Make executable ----
 chmod +x "${INSTALL_PATH}"
 echo "OK   Installed to ${INSTALL_PATH}"
 
@@ -118,7 +119,7 @@ add_to_rc() {
     fi
     if ! grep -qsF "${INSTALL_DIR}" "${RC}"; then
         echo "" >> "${RC}"
-        echo "# Added by NeoArc installer" >> "${RC}"
+        echo "# Added by ${PROJECT_NAME} installer" >> "${RC}"
         echo "${LINE}" >> "${RC}"
         echo "OK   Added ${INSTALL_DIR} to PATH in ${RC}"
     else
@@ -127,9 +128,7 @@ add_to_rc() {
 }
 
 case "${SHELL}" in
-    *zsh)
-        add_to_rc "${HOME}/.zshrc"
-        ;;
+    *zsh) add_to_rc "${HOME}/.zshrc" ;;
     *bash)
         if [ "${OS}" = "darwin" ]; then
             add_to_rc "${HOME}/.bash_profile"
@@ -137,19 +136,17 @@ case "${SHELL}" in
             add_to_rc "${HOME}/.bashrc"
         fi
         ;;
-    *)
-        add_to_rc "${HOME}/.profile"
-        ;;
+    *) add_to_rc "${HOME}/.profile" ;;
 esac
 
 echo ""
 echo "========================================"
-echo "  NeoArc installed successfully!"
+echo "  ${PROJECT_NAME} installed successfully!"
 echo "  Binary : ${INSTALL_PATH}"
 echo "  Version: ${VERSION}"
-echo "  Usage  : neoarc help"
+echo "  Usage  : ${PROJECT_NAME} help"
 echo "  To uninstall, run:"
-echo "    neoarc --selfuninstall"
+echo "    ${PROJECT_NAME} --selfuninstall"
 echo "========================================"
 echo ""
 echo "Run the following now (or restart your terminal):"
@@ -162,5 +159,5 @@ case "${SHELL}" in
             echo "  source ~/.bashrc"
         fi
         ;;
-    *)    echo "  export PATH=\"\${PATH}:${INSTALL_DIR}\"" ;;
+    *) echo "  export PATH=\"\${PATH}:${INSTALL_DIR}\"" ;;
 esac

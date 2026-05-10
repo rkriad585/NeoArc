@@ -188,8 +188,8 @@ cd neoarc-cli
 Both scripts:
 - Auto-detect the server's `.env` file to bake in the API token
 - Build for Windows/amd64, macOS/amd64, macOS/arm64, Linux/amd64, Linux/arm64
-- Inject version, commit hash, and build time via linker flags
-- Output binaries to `neoarc-cli/bin/`
+- Inject version (from `.version` file), commit hash, and build time via linker flags
+- Output binaries to `./bin/`
 
 Manual single-platform build:
 
@@ -281,6 +281,7 @@ neoarc config insecure             — Skip TLS certificate verification
 neoarc config secure               — Re-enable TLS verification
 neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
+neoarc update                      — Self-update to the latest version
 
 Standalone flags:
   --install                        — Download and install NeoArc to ~/.config/neostore/neoarc/bin/
@@ -310,7 +311,7 @@ pytest tests/ -v
 
 Tests cover: registration, login, alias CRUD, search, profile updates, API auth, ETag caching, rate limiting, CSRF protection, input validation, session protection, blocked users, cross-user isolation, password reset.
 
-### CLI (30 unit + 3 integration)
+### CLI (40+ unit + 3 integration)
 
 ```bash
 cd neoarc-cli
