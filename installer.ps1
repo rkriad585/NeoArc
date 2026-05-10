@@ -13,7 +13,22 @@
 
 $ErrorActionPreference = "Stop"
 $Repo = "rkriad585/NeoArc"
-$Version = "v3.0.2"
+
+# Read version from .version file (local or GitHub raw)
+$VersionFile = "$PSScriptRoot\.version"
+if (Test-Path $VersionFile) {
+    $Version = "v$(Get-Content $VersionFile -Raw | ForEach-Object { $_.Trim() })"
+} else {
+    try {
+        $ProgressPreference = "SilentlyContinue"
+        $v = (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/$Repo/main/.version" -UseBasicParsing).Content.Trim()
+        $Version = "v$v"
+    } catch {
+        Write-Host "Warn: Could not determine version, using latest." -ForegroundColor Yellow
+        $Version = ""
+    }
+}
+
 $InstallDir = "$env:USERPROFILE\.config\neostore\neoarc\bin"
 $InstallPath = "$InstallDir\neoarc.exe"
 
@@ -73,7 +88,11 @@ if ($arch -eq "AMD64") {
     Write-Error "Unsupported architecture: $arch"
 }
 
-$Url = "https://github.com/$Repo/releases/download/$Version/$Binary"
+if ($Version) {
+    $Url = "https://github.com/$Repo/releases/download/$Version/$Binary"
+} else {
+    $Url = "https://github.com/$Repo/releases/latest/download/$Binary"
+}
 
 # ---- Create install directory ----
 Write-Step "Creating install directory: $InstallDir"

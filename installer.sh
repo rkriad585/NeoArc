@@ -7,7 +7,17 @@
 set -eu
 
 REPO="rkriad585/NeoArc"
-VERSION="v3.0.2"
+# Read version from .version file (local or GitHub raw)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "${SCRIPT_DIR}/.version" ]; then
+    VERSION="v$(cat "${SCRIPT_DIR}/.version" | tr -d '[:space:]')"
+elif command -v curl >/dev/null 2>&1; then
+    VERSION="v$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/.version" 2>/dev/null | tr -d '[:space:]')"
+elif command -v wget >/dev/null 2>&1; then
+    VERSION="v$(wget -qO- "https://raw.githubusercontent.com/${REPO}/main/.version" 2>/dev/null | tr -d '[:space:]')"
+else
+    VERSION=""
+fi
 INSTALL_DIR="${HOME}/.config/neostore/neoarc/bin"
 BINARY="neoarc"
 INSTALL_PATH="${INSTALL_DIR}/${BINARY}"
@@ -68,7 +78,11 @@ case "${OS}" in
         ;;
 esac
 
-URL="https://github.com/${REPO}/releases/download/${VERSION}/${DOWNLOAD}"
+if [ -n "${VERSION}" ]; then
+    URL="https://github.com/${REPO}/releases/download/${VERSION}/${DOWNLOAD}"
+else
+    URL="https://github.com/${REPO}/releases/latest/download/${DOWNLOAD}"
+fi
 
 # ---- Create install directory ----
 echo ">>> Creating install directory: ${INSTALL_DIR}"

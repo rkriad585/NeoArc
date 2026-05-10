@@ -392,6 +392,24 @@ func homeDir() string {
 	return h
 }
 
+func resolveVersion(repo string) string {
+	if Version != "" {
+		return Version
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(fmt.Sprintf("https://raw.githubusercontent.com/%s/main/.version", repo))
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	v := strings.TrimSpace(string(body))
+	if v == "" {
+		return ""
+	}
+	return "v" + v
+}
+
 func selfInstall() int {
 	targetDir := installDir()
 	binName := "neoarc"
@@ -404,7 +422,7 @@ func selfInstall() int {
 
 	// Determine download URL for latest version
 	repo := "rkriad585/NeoArc"
-	version := "v3.0.2"
+	version := resolveVersion(repo)
 	var downloadName string
 
 	switch runtime.GOOS {
@@ -429,7 +447,12 @@ func selfInstall() int {
 		return 1
 	}
 
-	url := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", repo, version, downloadName)
+	var url string
+	if version != "" {
+		url = fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", repo, version, downloadName)
+	} else {
+		url = fmt.Sprintf("https://github.com/%s/releases/latest/download/%s", repo, downloadName)
+	}
 
 	fmt.Printf(">>> Downloading %s\n", url)
 
