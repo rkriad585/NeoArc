@@ -21,6 +21,7 @@ A Go command-line tool that connects to the NeoArc server to fetch and execute c
 Download the latest binary for your platform from the releases page. Binaries are cross-compiled for:
 
 - `windows/amd64`
+- `windows/arm64`
 - `darwin/amd64`, `darwin/arm64`
 - `linux/amd64`, `linux/arm64`
 

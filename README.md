@@ -187,7 +187,7 @@ cd neoarc-cli
 
 Both scripts:
 - Auto-detect the server's `.env` file to bake in the API token
-- Build for Windows/amd64, macOS/amd64, macOS/arm64, Linux/amd64, Linux/arm64
+- Build for Windows/amd64, Windows/arm64, macOS/amd64, macOS/arm64, Linux/amd64, Linux/arm64
 - Inject version (from `.version` file), commit hash, and build time via linker flags
 - Output binaries to `./bin/`
 

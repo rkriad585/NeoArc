@@ -59,8 +59,10 @@ NEOARC/
 |   +-- tests/
 |   |   +-- integration_test.go
 |   +-- go.mod / go.sum
-|   +-- build.ps1 / build.sh
 |
++-- .version
++-- build.ps1 / build.sh
++-- installer.ps1 / installer.sh
 +-- neoarc-server/                  # Python Flask Server
 |   +-- core/
 |   |   +-- admin.py                # Super admin logic

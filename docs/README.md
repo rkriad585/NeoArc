@@ -39,18 +39,20 @@ Featuring a premium **"Liquid Glass" / "Nothing OS" UI**, NeoArc offers a cyberp
 ```text
 NEOARC/
 |
++-- .version                        # Version file (v3.0.3)
++-- build.ps1                       # Root-level Windows Build Script
++-- build.sh                        # Root-level Unix Build Script
++-- installer.ps1                   # One-line Windows installer
++-- installer.sh                    # One-line Unix installer
+|
 +-- neoarc-cli/                     # Golang Client
-|   +-- bin/                        # Precompiled binaries
 |   +-- cmd/neoarc/main.go          # CLI Entry point
 |   +-- internal/cli/
-|   |   +-- cli.go                  # CLI Logic (config, cache, trust store, execution)
+|   |   +-- cli.go                  # CLI Logic (config, cache, trust store, execution, update)
 |   |   +-- completion.go           # Shell completion generators (bash/zsh/powershell)
-|   |   +-- cli_test.go             # CLI unit tests
+|   |   +-- cli_test.go             # CLI unit tests (40+)
 |   +-- tests/integration_test.go   # Integration tests
-|   +-- go.mod
-|   +-- go.sum
-|   +-- build.ps1                   # Windows Build Script
-|   +-- build.sh                    # Linux/Mac Build Script
+|   +-- go.mod / go.sum
 |
 +-- neoarc-server/                  # Python Flask Server
 |   +-- core/                       # Backend Modules
@@ -150,26 +152,33 @@ Ensure you have **Python 3.10+** installed.
 
 ### 2. Client Setup (Golang)
 
-Ensure you have **Go 1.20+** installed.
+Ensure you have **Go 1.25+** installed.
 
-1.  Navigate to the CLI directory:
+Build the binary from the repo root:
+
+- **Windows (PowerShell):**
+    ```powershell
+    .\build.ps1
+    ```
+- **Linux / macOS / Termux:**
     ```bash
-    cd neoarc-cli
+    chmod +x build.sh
+    ./build.sh
     ```
 
-2.  Build the binary:
+Both scripts cross-compile for 6 platforms (Windows amd64/arm64, macOS amd64/arm64, Linux amd64/arm64), injection version (from `.version`), commit hash, and build time via ldflags. Output is placed in `./bin/`.
 
-    - **Windows (PowerShell):**
-        ```powershell
-        .\build.ps1
-        ```
-    - **Linux / macOS / Termux:**
-        ```bash
-        chmod +x build.sh
-        ./build.sh
-        ```
+Alternatively, install the CLI binary directly:
+```bash
+# One-line install
+curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh | sh
+```
 
-3.  Add the binary to your system PATH or move it to `/usr/local/bin` (Linux) or `C:\Windows\System32` (Windows) for global access.
+Or build manually:
+```bash
+cd neoarc-cli
+go build -o neoarc ./cmd/neoarc
+```
 
 ---
 

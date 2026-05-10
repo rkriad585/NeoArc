@@ -9,7 +9,7 @@ This guide covers building and installing the NeoArc CLI client from source.
 
 ## Build
 
-Navigate to the `neoarc-cli/` directory and run the platform-specific build script.
+Run the platform-specific build script from the **repo root**.
 
 ### Windows (PowerShell)
 
@@ -24,9 +24,11 @@ chmod +x build.sh
 ./build.sh
 ```
 
+Both scripts cross-compile for 6 platforms (Windows amd64/arm64, macOS amd64/arm64, Linux amd64/arm64), injecting version (from `.version`), commit hash, and build time via ldflags.
+
 ## Output
 
-Build artifacts are placed in the `bin/` directory (not `build/`):
+Build artifacts are placed in `./bin/`:
 
 | Platform       | Binary name                    |
 |----------------|--------------------------------|
