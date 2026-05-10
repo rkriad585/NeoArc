@@ -1,11 +1,8 @@
 $ErrorActionPreference = "Stop"
 
 $APP_NAME = "neoarc"
-$VERSION = "1.0.0"
-$COMMIT = "none"
-
-try { $VERSION = git describe --tags --always } catch {}
-try { $COMMIT = git rev-parse --short HEAD } catch {}
+$VERSION = git describe --tags --always
+$COMMIT = git rev-parse --short HEAD
 
 $BUILD_TIME = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 

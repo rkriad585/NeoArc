@@ -12,7 +12,7 @@ else
     VERSION="0.0.0"
 fi
 
-COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+COMMIT=$(git rev-parse --short HEAD)
 BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 OUTPUT_DIR="${SCRIPT_DIR}/bin"

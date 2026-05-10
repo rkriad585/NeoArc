@@ -2,8 +2,8 @@
 set -e
 
 APP_NAME="neoarc"
-VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
-COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+VERSION=$(git describe --tags --always)
+COMMIT=$(git rev-parse --short HEAD)
 BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 SERVER_ENV="$(dirname "$0")/../neoarc-server/.env"

@@ -10,8 +10,7 @@ if (Test-Path $VERSION_FILE) {
     $VERSION = "0.0.0"
 }
 
-$COMMIT = "none"
-try { $COMMIT = git rev-parse --short HEAD } catch {}
+$COMMIT = git rev-parse --short HEAD
 
 $BUILD_TIME = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
