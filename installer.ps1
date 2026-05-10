@@ -13,7 +13,7 @@
 
 $ErrorActionPreference = "Stop"
 $Repo = "rkriad585/NeoArc"
-$Version = "v3.0.1"
+$Version = "v3.0.2"
 $InstallDir = "$env:USERPROFILE\.config\neostore\neoarc\bin"
 $InstallPath = "$InstallDir\neoarc.exe"
 

@@ -7,7 +7,7 @@
 set -eu
 
 REPO="rkriad585/NeoArc"
-VERSION="v3.0.1"
+VERSION="v3.0.2"
 INSTALL_DIR="${HOME}/.config/neostore/neoarc/bin"
 BINARY="neoarc"
 INSTALL_PATH="${INSTALL_DIR}/${BINARY}"

@@ -404,7 +404,7 @@ func selfInstall() int {
 
 	// Determine download URL for latest version
 	repo := "rkriad585/NeoArc"
-	version := "v3.0.1"
+	version := "v3.0.2"
 	var downloadName string
 
 	switch runtime.GOOS {
