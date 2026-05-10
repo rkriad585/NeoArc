@@ -22,8 +22,8 @@ NeoArc is a cyber/Matrix-themed ecosystem for storing, managing, and executing c
 │                  │   GET /api/aliases (list)         │  completion (tab)    │
 │                  │       ETag caching, 304s         │                      │
 │  SQLite (WAL)    │                                  │  Local cache + trust │
-│  Web Dashboard   │                                  │  5 platform builds   │
-│  Admin Panel     │                                  │                      │
+│  Web Dashboard   │                                  │  Update + selfuninst │
+│  Admin Panel     │                                  │  6 platform builds   │
 └─────────────────┘                                  └──────────────────────┘
 ```
 
@@ -36,7 +36,7 @@ Aliases are created and managed via the web dashboard, stored in a SQLite databa
 | Category | Details |
 |---|---|
 | **Web Dashboard** | Create, edit, delete, search, and view aliases. Cyber-themed dark UI with Tailwind CSS |
-| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`. Supports bash, PowerShell, cmd, Python, and Go exec types |
+| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`, `neoarc update`. Supports bash, PowerShell, cmd, Python, and Go exec types |
 | **Authentication** | Session-based auth with CSRF protection. Rate-limited login (5/min) and registration (3/5min) |
 | **API Security** | Bearer token authentication, rate-limited (60/min per IP), ETag caching with 304 responses |
 | **Admin Panel** | User management — view, block/unblock, delete users. Configurable admin route prefix |
@@ -46,7 +46,9 @@ Aliases are created and managed via the web dashboard, stored in a SQLite databa
 | **Database** | SQLite with WAL mode, foreign keys, busy timeout, retry-on-lock logic |
 | **Argument Passing** | CLI passes args after alias name through to the executed script (`$1`, `$args[0]`, `sys.argv[1]`) |
 | **Tab Completion** | `neoarc completion bash|zsh|powershell` generates shell completions for commands, flags, and alias names |
-| **Cross-Platform CLI** | Pre-built binaries for Windows (amd64), macOS (amd64/arm64), Linux (amd64/arm64) |
+| **Self-Update** | `neoarc update` fetches latest release, compares version, and replaces the binary (deferred batch on Windows) |
+| **Self-Uninstall** | `neoarc --selfuninstall` removes config, cache, and binary from the system |
+| **Cross-Platform CLI** | Pre-built binaries for Windows (amd64/arm64), macOS (amd64/arm64), Linux (amd64/arm64) |
 | **Docker** | Multi-stage Alpine build. Compose file with persistent volumes for DB and uploads |
 | **Exec Types** | `bash`, `powershell`, `cmd`, `python`, `go` — mapped to appropriate runtime per OS |
 | **Error Pages** | Themed 404, 500 error pages with matrix-flavored messages |
@@ -57,6 +59,13 @@ Aliases are created and managed via the web dashboard, stored in a SQLite databa
 
 ```
 NeoArc/
+├── .version                    # Version file (v3.0.3)
+├── build.ps1                   # Root-level Windows cross-compile script
+├── build.sh                    # Root-level Unix cross-compile script
+├── installer.ps1               # One-line Windows installer
+├── installer.sh                # One-line Unix installer
+├── docker-compose.yml          # Production Docker stack
+│
 ├── neoarc-server/              # Flask web application
 │   ├── core/
 │   │   ├── routes/             # Blueprint modules
@@ -72,7 +81,7 @@ NeoArc/
 │   │   ├── rate_limiter.py     # In-memory sliding-window rate limiter
 │   │   └── validation.py       # Input validation + image MIME detection
 │   ├── templates/              # Jinja2 templates (Tailwind CSS)
-│   ├── tests/                  # Pytest suite (57 tests)
+│   ├── tests/                  # Pytest suite (66 tests)
 │   │   ├── test_api.py
 │   │   ├── test_routes.py
 │   │   └── test_security.py
@@ -84,15 +93,13 @@ NeoArc/
 ├── neoarc-cli/                 # Go CLI client
 │   ├── cmd/neoarc/main.go      # Entry point
 │   ├── internal/cli/
-│   │   ├── cli.go              # Core logic (fetch, execute, config, cache, trust)
+│   │   ├── cli.go              # Core logic (fetch, execute, config, cache, trust, update)
 │   │   ├── completion.go       # Shell completion generators (bash/zsh/powershell)
-│   │   └── cli_test.go         # Unit tests (30 tests)
+│   │   └── cli_test.go         # Unit tests (40+)
 │   ├── tests/
-│   │   └── integration_test.go # Integration tests (3 tests)
-│   ├── build.ps1               # Windows cross-compile script
-│   ├── build.sh                # Unix cross-compile script
+│   │   └── integration_test.go # Integration tests (3)
 │   └── go.mod
-├── docker-compose.yml          # Production Docker stack
+│
 └── static/uploads/             # Avatar uploads directory
 ```
 
@@ -174,14 +181,12 @@ The CLI includes build scripts for cross-compiling to all platforms.
 
 **Unix:**
 ```bash
-cd neoarc-cli
 chmod +x build.sh
 ./build.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-cd neoarc-cli
 .\build.ps1
 ```
 
@@ -191,11 +196,12 @@ Both scripts:
 - Inject version (from `.version` file), commit hash, and build time via linker flags
 - Output binaries to `./bin/`
 
-Manual single-platform build:
+Manual single-platform build (version from .version, or leave empty for GitHub fallback):
 
 ```bash
+VERSION="v$(cat .version | tr -d '[:space:]')"
 cd neoarc-cli
-go build -ldflags="-s -w" -o neoarc ./cmd/neoarc
+go build -ldflags="-s -w -X neoarc/internal/cli.Version=$VERSION" -o neoarc ./cmd/neoarc
 ```
 
 ---
