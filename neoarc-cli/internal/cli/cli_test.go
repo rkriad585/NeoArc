@@ -44,9 +44,9 @@ func TestConfigLoadSave(t *testing.T) {
 		t.Fatal("expected insecure TLS to be true")
 	}
 
-	path := filepath.Join(d, ".config", "neostore", "neoarc", "config.json")
+	path := filepath.Join(d, ".config", "neostore", "neoarc", "config.toml")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Fatal("config.json was not created")
+		t.Fatal("config.toml was not created")
 	}
 }
 
@@ -241,7 +241,7 @@ func TestConfigPaths(t *testing.T) {
 	if cfgDir != expected {
 		t.Fatalf("expected config dir %q, got %q", expected, cfgDir)
 	}
-	if ConfigPath() != filepath.Join(expected, "config.json") {
+	if ConfigPath() != filepath.Join(expected, "config.toml") {
 		t.Fatal("config path mismatch")
 	}
 	if CachePath() != filepath.Join(expected, "alias_cache.json") {
@@ -594,7 +594,7 @@ func TestRunSelfUninstall(t *testing.T) {
 
 	cfgDir := filepath.Join(d, ".config", "neostore", "neoarc")
 	os.MkdirAll(cfgDir, 0755)
-	os.WriteFile(filepath.Join(cfgDir, "config.json"), []byte(`{"server_url":"http://test:1234"}`), 0644)
+	os.WriteFile(filepath.Join(cfgDir, "config.toml"), []byte("server_url = \"http://test:1234\"\n"), 0644)
 
 	code := Run([]string{"neoarc", "--selfuninstall"})
 	if code != 0 {
@@ -773,8 +773,8 @@ func TestMigrationFromOldPaths(t *testing.T) {
 	}
 
 	newDir := filepath.Join(d, ".config", "neostore", "neoarc")
-	newCfg := filepath.Join(newDir, "config.json")
+	newCfg := filepath.Join(newDir, "config.toml")
 	if _, err := os.Stat(newCfg); os.IsNotExist(err) {
-		t.Fatal("expected config to be migrated to new directory")
+		t.Fatal("expected config to be migrated to new directory as config.toml")
 	}
 }

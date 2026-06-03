@@ -16,6 +16,7 @@ neoarc config http://localhost:59248
 | `neoarc config-token <token>` | Set API token in local config file |
 | `neoarc completion <shell>` | Generate shell completion script |
 | `neoarc help` | Show help |
+| `neoarc --config <path>` | Use a custom config file (global flag) |
 
 ## Alias Commands
 
@@ -135,15 +136,25 @@ The CLI infers how to execute code based on the alias's `exec_type` field:
 
 ## Configuration File
 
-- **Windows:** `%APPDATA%\neoarc\config.json`
-- **Linux / macOS:** `~/.neoarc/config.json`
+**New location (v3+):**
+- **Windows:** `%USERPROFILE%\.config\neostore\neoarc\config.toml`
+- **Linux / macOS:** `~/.config/neostore/neoarc/config.toml`
 
-Example config:
+*Legacy paths (`%APPDATA%\neoarc\` or `~/.neoarc/`) are auto-migrated on first run.*
 
-```json
-{
-  "server_url": "http://localhost:59248",
-  "api_token": "your-token-here",
-  "insecure_tls": false
-}
+### Config File Format (TOML)
+
+```toml
+server_url = "http://localhost:59248"
+api_token = "your-token-here"
+insecure_tls = false
+```
+
+### Custom Config Path
+
+Use the `--config` global flag to specify a non-default config file:
+
+```bash
+neoarc --config /path/to/custom/config.toml run my-alias
+neoarc --config /path/to/custom/config.toml config http://server:59248
 ```

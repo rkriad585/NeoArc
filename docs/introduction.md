@@ -38,6 +38,7 @@ The system is built with a focus on both aesthetics and functionality, featuring
     - `Python`
     - `Golang` (Includes auto-compilation for Go scripts)
 - **Stealth & Performance:** Developed in Go, the CLI offers high performance, minimal resource usage, and single-binary deployment for ease of distribution and execution.
+- **Cross-Platform Config System:** All configuration, cache, and trust data are stored in `~/.config/neostore/neoarc/` using TOML format. Legacy JSON configs are auto-migrated on first run.
 - **Client-Side Alias Cache:** Fetched aliases are cached locally in `alias_cache.json` with a 30-second TTL. Subsequent fetches within the TTL use the cached version without a network request.
 - **Trust-on-First-Use (TOFU):** Before executing an alias for the first time, the CLI prompts the user for confirmation. Approved aliases are stored in `trusted.json` and skip the prompt on future runs.
 - **ETag Conditional Requests:** The CLI stores ETags from server responses and sends `If-None-Match` headers. On HTTP 304, the cached alias is used without re-downloading.

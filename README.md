@@ -36,7 +36,7 @@ Aliases are created and managed via the web dashboard, stored in a SQLite databa
 | Category | Details |
 |---|---|
 | **Web Dashboard** | Create, edit, delete, search, and view aliases. Cyber-themed dark UI with Tailwind CSS |
-| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`, `neoarc update`. Supports bash, PowerShell, cmd, Python, and Go exec types |
+| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`, `neoarc update`, `--config` flag. Supports bash, PowerShell, cmd, Python, and Go exec types |
 | **Authentication** | Session-based auth with CSRF protection. Rate-limited login (5/min) and registration (3/5min) |
 | **API Security** | Bearer token authentication, rate-limited (60/min per IP), ETag caching with 304 responses |
 | **Admin Panel** | User management — view, block/unblock, delete users. Configurable admin route prefix |
@@ -92,13 +92,17 @@ NeoArc/
 │   └── Dockerfile              # Multi-stage Alpine build
 ├── neoarc-cli/                 # Go CLI client
 │   ├── cmd/neoarc/main.go      # Entry point
-│   ├── internal/cli/
-│   │   ├── cli.go              # Core logic (fetch, execute, config, cache, trust, update)
-│   │   ├── completion.go       # Shell completion generators (bash/zsh/powershell)
-│   │   └── cli_test.go         # Unit tests (40+)
+│   ├── internal/
+│   │   ├── cli/
+│   │   │   ├── cli.go              # Core logic (fetch, execute, config, cache, trust, update)
+│   │   │   ├── completion.go       # Shell completion generators (bash/zsh/powershell)
+│   │   │   └── cli_test.go         # Unit tests (40+)
+│   │   └── config/
+│   │       └── config.go           # Cross-platform config directory helpers (TOML)
 │   ├── tests/
 │   │   └── integration_test.go # Integration tests (3)
-│   └── go.mod
+│   ├── go.mod
+│   └── go.sum
 │
 └── static/uploads/             # Avatar uploads directory
 ```
@@ -131,9 +135,73 @@ The API token is shown once on server startup (unless `NEOARC_API_TOKEN` is set)
 
 ---
 
-## Configuration Reference
+## Client Configuration System
 
-All configuration is via environment variables prefixed with `NEOARC_`.
+The CLI uses a **cross-platform configuration system** built into `internal/config/`.
+
+### Config Directory Locations
+
+| Platform | Config Path |
+|----------|-------------|
+| Windows | `%USERPROFILE%\.config\neostore\neoarc\` |
+| Linux/macOS | `~/.config/neostore/neoarc/` |
+
+Config is stored as TOML: `~/.config/neostore/neoarc/config.toml`
+
+### Log Files
+
+Logs are stored in the same config directory:
+- **Windows:** `%USERPROFILE%\.config\neostore\neoarc\history.log`
+- **Linux/macOS:** `~/.config/neostore/neoarc/history.log`
+
+### Output / Saved Files
+
+Downloaded or generated files are saved to:
+- **Windows:** `%USERPROFILE%\Downloads\neostore\neoarc\`
+- **Linux/macOS:** `~/Downloads/neostore/neoarc/`
+
+### Helper Functions (`internal/config/config.go`)
+
+| Function | Description |
+|----------|-------------|
+| `ConfigDir()` | Returns the config directory path |
+| `EnsureConfigDir()` | Creates the config directory if it doesn't exist |
+| `ConfigFile(name)` | Returns full path to a named config file |
+| `LogFile(name)` | Returns full path to a log file |
+| `SaveDir()` | Returns the output/save directory path |
+| `HomeDir()` | Returns the user's home directory (OS-aware) |
+
+### Custom Config File
+
+Use `--config <path>` to point the CLI at a non-default config file:
+```bash
+neoarc --config /path/to/custom/config.toml run my-alias
+```
+
+### Config File Format (TOML)
+
+```toml
+server_url = "http://localhost:59248"
+api_token = "your-api-token"
+insecure_tls = false
+```
+
+### Config File Resolution Order
+
+1. `--config <path>` flag (if provided)
+2. Default: `~/.config/neostore/neoarc/config.toml`
+
+### Migration from Legacy Config
+
+On first run, the CLI automatically migrates config from old paths:
+- Old Windows: `%APPDATA%\neoarc\config.json`
+- Old Unix: `~/.neoarc/config.json`
+
+Old JSON config files are converted to the new TOML format automatically.
+
+## Server Configuration Reference
+
+All server configuration is via environment variables prefixed with `NEOARC_`.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -292,6 +360,7 @@ neoarc update                      — Self-update to the latest version
 Standalone flags:
   --install                        — Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                  — Remove NeoArc config, cache, and binary
+  --config <path>                  — Use a custom config file path (can be used with any command)
 
 Flags (place before alias):
   --dry-run                        — Print alias code without executing

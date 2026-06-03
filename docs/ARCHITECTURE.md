@@ -89,7 +89,7 @@ The server acts as the central hub for alias management, user authentication, an
 
 The CLI tool is a lightweight, cross-platform binary responsible for fetching and executing aliases.
 
-- **Configuration:** Stores the NeoArc server URL, API token, and TLS settings in `config.json` (located at `~/.neoarc/` on Unix or `%APPDATA%/neoarc/` on Windows).
+- **Configuration:** Stores the NeoArc server URL, API token, and TLS settings in `config.toml` (located at `~/.config/neostore/neoarc/config.toml` on all platforms). Legacy JSON configs from old paths are auto-migrated on first run.
 - **Client-Side Alias Cache:** Fetched alias responses are cached in `alias_cache.json` with a 30-second TTL. Cache hits within the TTL skip the HTTP request entirely.
 - **ETag Conditional Requests:** The CLI stores the server's `ETag` header per alias. On subsequent fetches, it sends `If-None-Match`. A `304 Not Modified` response causes the CLI to reuse the cached entry.
 - **Trust Store (TOFU):** The first time an alias is executed, the CLI prompts `Execute alias '<name>'? This will run code from the remote server. [y/N]:`. On approval, the alias name is stored in `trusted.json` with a Unix timestamp. Approved aliases skip the prompt on future runs.

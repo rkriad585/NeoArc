@@ -15,25 +15,28 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/BurntSushi/toml"
+	"neoarc/internal/config"
 )
 
 const (
-	ProjectName = "neoarc"
-	RepoPath    = "rkriad585/NeoArc"
-	RepoOwner   = "rkriad585"
+	RepoPath  = "rkriad585/NeoArc"
+	RepoOwner = "rkriad585"
 )
 
 var (
-	APIToken  string
-	Version   string
-	BuildTime string
-	Commit    string
+	APIToken   string
+	Version    string
+	BuildTime  string
+	Commit     string
+	configPath string
 )
 
 type Config struct {
-	ServerURL   string `json:"server_url"`
-	APIToken    string `json:"api_token,omitempty"`
-	InsecureTLS bool   `json:"insecure_tls,omitempty"`
+	ServerURL   string `toml:"server_url" json:"server_url"`
+	APIToken    string `toml:"api_token,omitempty" json:"api_token,omitempty"`
+	InsecureTLS bool   `toml:"insecure_tls,omitempty" json:"insecure_tls,omitempty"`
 }
 
 type AliasResponse struct {
@@ -60,17 +63,18 @@ type TrustStore struct {
 }
 
 func ConfigDir() string {
-	dir := filepath.Join(homeDir(), ".config", "neostore", ProjectName)
-	os.MkdirAll(dir, 0755)
-	return dir
+	config.EnsureConfigDir()
+	return config.ConfigDir()
 }
 
 func migrateOldConfig() {
-	newDir := ConfigDir()
+	newDir := config.ConfigDir()
 
-	oldDirs := []string{filepath.Join(os.Getenv("APPDATA"), ProjectName)}
+	oldDirs := []string{
+		filepath.Join(os.Getenv("APPDATA"), "neoarc"),
+	}
 	if h, err := os.UserHomeDir(); err == nil {
-		oldDirs = append(oldDirs, filepath.Join(h, "."+ProjectName))
+		oldDirs = append(oldDirs, filepath.Join(h, ".neoarc"))
 	}
 
 	for _, old := range oldDirs {
@@ -102,19 +106,42 @@ func migrateOldConfig() {
 }
 
 func ConfigPath() string {
-	return filepath.Join(ConfigDir(), "config.json")
+	if configPath != "" {
+		return configPath
+	}
+	return config.ConfigFile("config.toml")
 }
 
 func CachePath() string {
-	return filepath.Join(ConfigDir(), "alias_cache.json")
+	return config.ConfigFile("alias_cache.json")
 }
 
 func TrustPath() string {
-	return filepath.Join(ConfigDir(), "trusted.json")
+	return config.ConfigFile("trusted.json")
+}
+
+func migrateConfigFormat() {
+	oldPath := config.ConfigFile("config.json")
+	newPath := ConfigPath()
+	if _, err := os.Stat(newPath); err == nil {
+		return
+	}
+	data, err := os.ReadFile(oldPath)
+	if err != nil {
+		return
+	}
+	var old Config
+	if err := json.Unmarshal(data, &old); err != nil {
+		return
+	}
+	SaveConfig(old)
+	os.Remove(oldPath)
 }
 
 func LoadConfig() Config {
 	migrateOldConfig()
+	migrateConfigFormat()
+	config.EnsureConfigDir()
 	path := ConfigPath()
 	file, err := os.ReadFile(path)
 	if err != nil {
@@ -123,13 +150,21 @@ func LoadConfig() Config {
 		return defaultCfg
 	}
 	var cfg Config
-	json.Unmarshal(file, &cfg)
+	if err := toml.Unmarshal(file, &cfg); err != nil {
+		defaultCfg := Config{ServerURL: "http://localhost:59248"}
+		SaveConfig(defaultCfg)
+		return defaultCfg
+	}
 	return cfg
 }
 
 func SaveConfig(cfg Config) {
-	data, _ := json.MarshalIndent(cfg, "", "  ")
-	os.WriteFile(ConfigPath(), data, 0644)
+	config.EnsureConfigDir()
+	var buf strings.Builder
+	if err := toml.NewEncoder(&buf).Encode(cfg); err != nil {
+		return
+	}
+	os.WriteFile(ConfigPath(), []byte(buf.String()), 0644)
 }
 
 func LoadCache() AliasCache {
@@ -148,6 +183,7 @@ func LoadCache() AliasCache {
 }
 
 func SaveCache(c AliasCache) {
+	config.EnsureConfigDir()
 	data, _ := json.MarshalIndent(c, "", "  ")
 	os.WriteFile(CachePath(), data, 0644)
 }
@@ -168,6 +204,7 @@ func LoadTrusted() TrustStore {
 }
 
 func SaveTrusted(t TrustStore) {
+	config.EnsureConfigDir()
 	data, _ := json.MarshalIndent(t, "", "  ")
 	os.WriteFile(TrustPath(), data, 0644)
 }
@@ -419,17 +456,9 @@ func FetchAliases() ([]string, error) {
 }
 
 func installDir() string {
-	dir := filepath.Join(homeDir(), ".config", "neostore", "neoarc", "bin")
+	dir := filepath.Join(config.ConfigDir(), "bin")
 	os.MkdirAll(dir, 0755)
 	return dir
-}
-
-func homeDir() string {
-	if runtime.GOOS == "windows" {
-		return os.Getenv("USERPROFILE")
-	}
-	h, _ := os.UserHomeDir()
-	return h
 }
 
 func resolveVersion(repo string) string {
@@ -593,15 +622,15 @@ func addToPath(targetDir string) int {
 		rcFile := ""
 		switch {
 		case os.Getenv("SHELL") != "" && strings.Contains(os.Getenv("SHELL"), "zsh"):
-			rcFile = filepath.Join(homeDir(), ".zshrc")
+			rcFile = filepath.Join(config.HomeDir(), ".zshrc")
 		case os.Getenv("SHELL") != "" && strings.Contains(os.Getenv("SHELL"), "bash"):
 			if runtime.GOOS == "darwin" {
-				rcFile = filepath.Join(homeDir(), ".bash_profile")
+				rcFile = filepath.Join(config.HomeDir(), ".bash_profile")
 			} else {
-				rcFile = filepath.Join(homeDir(), ".bashrc")
+				rcFile = filepath.Join(config.HomeDir(), ".bashrc")
 			}
 		default:
-			rcFile = filepath.Join(homeDir(), ".profile")
+			rcFile = filepath.Join(config.HomeDir(), ".profile")
 		}
 
 		line := fmt.Sprintf("export PATH=\"$PATH:%s\"", targetDir)
@@ -773,17 +802,17 @@ func compareVersions(a, b string) int {
 func resolveDownloadName() string {
 	switch runtime.GOOS {
 	case "windows":
-		return ProjectName + "-windows-amd64.exe"
+		return config.ProjectName + "-windows-amd64.exe"
 	case "darwin":
 		if runtime.GOARCH == "arm64" {
-			return ProjectName + "-darwin-arm64"
+			return config.ProjectName + "-darwin-arm64"
 		}
-		return ProjectName + "-darwin-amd64"
+		return config.ProjectName + "-darwin-amd64"
 	case "linux":
 		if runtime.GOARCH == "arm64" {
-			return ProjectName + "-linux-arm64"
+			return config.ProjectName + "-linux-arm64"
 		}
-		return ProjectName + "-linux-amd64"
+		return config.ProjectName + "-linux-amd64"
 	}
 	return ""
 }
@@ -836,7 +865,7 @@ func selfUpdate() int {
 		return 1
 	}
 
-	tmpFile, err := os.CreateTemp("", ProjectName+"-update-*")
+	tmpFile, err := os.CreateTemp("", config.ProjectName+"-update-*")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: could not create temp file: %v\n", err)
 		return 1
@@ -883,7 +912,7 @@ func selfUpdate() int {
 
 func updateWindows(tmpPath, exePath string) int {
 	binDir := installDir()
-	binPath := filepath.Join(binDir, ProjectName+".exe")
+	binPath := filepath.Join(binDir, config.ProjectName+".exe")
 	os.MkdirAll(binDir, 0755)
 
 	src, _ := os.Open(tmpPath)
@@ -914,7 +943,7 @@ del /f /q "%s" 2>nul
 del /f /q "%%~f0"
 `, tmpPath, exePath, exePath, tmpPath)
 
-	batPath := filepath.Join(os.TempDir(), ProjectName+"-update.bat")
+	batPath := filepath.Join(os.TempDir(), config.ProjectName+"-update.bat")
 	if err := os.WriteFile(batPath, []byte(batContent), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not create update script: %v\n", err)
 		fmt.Printf("Update binary at: %s\n", tmpPath)
@@ -953,6 +982,9 @@ Options (place before <alias>):
   --dry-run                          : Print the alias code without executing
   --yes                              : Skip execution confirmation prompt
 
+Global flags:
+  --config <path>                    : Use a custom config file path
+
 Arguments after <alias> are passed through to the executed command.
   bash/sh    : accessible via $1, $2, $@
   powershell : accessible via $args[0], $args[1]
@@ -960,10 +992,27 @@ Arguments after <alias> are passed through to the executed command.
   cmd        : accessible via %1, %2`)
 
 	fmt.Printf("\nVersion  : %s\n", resolveVersion(RepoPath))
+	fmt.Printf("Config   : %s\n", ConfigPath())
 }
 
 func Run(args []string) int {
 	migrateOldConfig()
+
+	argIdx := 1
+
+	if len(args) > 2 && args[1] == "--config" {
+		customPath := args[2]
+		if info, err := os.Stat(customPath); err == nil && !info.IsDir() {
+			configPath = customPath
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: config file not found: %s\n", customPath)
+			return 1
+		}
+		argIdx = 3
+	}
+
+	shifted := append([]string{args[0]}, args[argIdx:]...)
+	args = shifted
 
 	if len(args) < 2 {
 		ShowHelp()
@@ -1041,7 +1090,7 @@ func Run(args []string) int {
 
 	dryRun := false
 	yesMode := false
-	argIdx := 1
+	argIdx = 1
 
 	for argIdx < len(args) && args[argIdx][0] == '-' {
 		switch args[argIdx] {

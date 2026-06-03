@@ -85,6 +85,19 @@ This guide details the steps to set up and run the NeoArc web server, which acts
 *   **Register a User:** You can register new users through the `/register` endpoint.
 *   **Access Admin Panel:** The Super Admin panel is available at `http://localhost:59248/admin/login`. Use the credentials you set in `config.py` to log in.
 
+## Client Configuration
+
+After setting up the server, configure the CLI to connect to it:
+
+```bash
+neoarc config http://your-server:59248
+neoarc config-token <api-token-from-server>
+```
+
+All CLI config is stored in `~/.config/neostore/neoarc/config.toml`.
+
+See the [CLI Setup Guide](CLI_SETUP.md) for more details.
+
 ## Troubleshooting
 
 *   **`ModuleNotFoundError`:** Ensure you have activated your virtual environment and installed all dependencies (`pip install flask werkzeug`).

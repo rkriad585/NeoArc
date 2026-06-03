@@ -53,10 +53,19 @@ At runtime, tokens are resolved in order:
 
 ## Configuration File Location
 
-- **Windows:** `%APPDATA%\neoarc\config.json`
-- **Linux / macOS:** `~/.neoarc/config.json`
+All platforms: `~/.config/neostore/neoarc/config.toml`
+- **Windows:** `%USERPROFILE%\.config\neostore\neoarc\config.toml`
+- **Linux / macOS:** `~/.config/neostore/neoarc/config.toml`
+
+> **Legacy migration:** The CLI automatically migrates from old JSON config paths
+> (`%APPDATA%\neoarc\config.json` or `~/.neoarc/config.json`) to the new TOML format on first run.
 
 If no config file exists, the CLI creates one with a default server URL of `http://localhost:59248`.
+
+You can also use a custom config file with the `--config` flag:
+```bash
+neoarc --config /path/to/config.toml run my-alias
+```
 
 ## Verify Installation
 

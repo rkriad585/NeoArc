@@ -47,10 +47,13 @@ NEOARC/
 |
 +-- neoarc-cli/                     # Golang Client
 |   +-- cmd/neoarc/main.go          # CLI Entry point
-|   +-- internal/cli/
-|   |   +-- cli.go                  # CLI Logic (config, cache, trust store, execution, update)
-|   |   +-- completion.go           # Shell completion generators (bash/zsh/powershell)
-|   |   +-- cli_test.go             # CLI unit tests (40+)
+|   +-- internal/
+|   |   +-- cli/
+|   |   |   +-- cli.go              # CLI Logic (config, cache, trust store, execution, update)
+|   |   |   +-- completion.go       # Shell completion generators (bash/zsh/powershell)
+|   |   |   +-- cli_test.go         # CLI unit tests (40+)
+|   |   +-- config/
+|   |       +-- config.go           # Cross-platform config directory helpers (TOML)
 |   +-- tests/integration_test.go   # Integration tests
 |   +-- go.mod / go.sum
 |
@@ -179,6 +182,50 @@ Or build manually:
 cd neoarc-cli
 go build -o neoarc ./cmd/neoarc
 ```
+
+---
+
+## CLI Configuration System
+
+All CLI configuration, cache, and trust data live under `~/.config/neostore/neoarc/`:
+
+| File | Format | Purpose |
+|------|--------|---------|
+| `config.toml` | TOML | Server URL, API token, TLS settings |
+| `alias_cache.json` | JSON | Cached alias responses (30s TTL) |
+| `trusted.json` | JSON | Approved aliases (TOFU trust store) |
+
+### Config Directory Locations
+
+- **Windows:** `%USERPROFILE%\.config\neostore\neoarc\`
+- **Linux/macOS:** `~/.config/neostore/neoarc/`
+
+### Saved Output Directory
+
+Downloaded or generated files are saved to:
+- **Windows:** `%USERPROFILE%\Downloads\neostore\neoarc\`
+- **Linux/macOS:** `~/Downloads/neostore/neoarc/`
+
+### Custom Config Path
+
+Use the `--config` global flag to override:
+```bash
+neoarc --config /path/to/custom.toml run my-alias
+```
+
+### Config File Example
+
+```toml
+server_url = "http://localhost:59248"
+api_token = "your-api-token-here"
+insecure_tls = false
+```
+
+### Legacy Migration
+
+Old paths (`%APPDATA%\neoarc\` or `~/.neoarc/`) are detected and migrated to the new
+`~/.config/neostore/neoarc/` directory automatically on first run. JSON configs are
+converted to TOML format during migration.
 
 ---
 

@@ -52,10 +52,13 @@ NEOARC/
 +-- neoarc-cli/                     # Golang Client
 |   +-- bin/                        # Precompiled binaries
 |   +-- cmd/neoarc/main.go          # CLI entry point
-|   +-- internal/cli/
-|   |   +-- cli.go                  # CLI core logic (config, cache, trust, execution)
-|   |   +-- completion.go           # Shell completion generators (bash/zsh/powershell)
-|   |   +-- cli_test.go
+|   +-- internal/
+|   |   +-- cli/
+|   |   |   +-- cli.go              # CLI core logic (config, cache, trust, execution)
+|   |   |   +-- completion.go       # Shell completion generators (bash/zsh/powershell)
+|   |   |   +-- cli_test.go
+|   |   +-- config/
+|   |       +-- config.go           # Cross-platform config directory helpers (TOML)
 |   +-- tests/
 |   |   +-- integration_test.go
 |   +-- go.mod / go.sum
