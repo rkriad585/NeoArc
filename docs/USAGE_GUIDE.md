@@ -13,6 +13,7 @@ neoarc config http://localhost:59248
 | `neoarc config <server-url>` | Set server URL (default: `http://localhost:59248`) |
 | `neoarc config insecure` | Enable TLS skip-verify |
 | `neoarc config secure` | Disable TLS skip-verify |
+| `neoarc config theme <name>` | Set color theme (`list` to show all) |
 | `neoarc config-token <token>` | Set API token in local config file |
 | `neoarc completion <shell>` | Generate shell completion script |
 | `neoarc help` | Show help |
@@ -97,6 +98,25 @@ Execute alias 'sys_info'? This will run code from the remote server. [y/N]:
 
 Answering `y` or `yes` saves the alias to `trusted.json` so future runs proceed
 without prompting. Answering anything else cancels execution.
+
+## Theme Configuration
+
+The CLI features 13 built-in color themes that affect help output, update messages, and confirmation prompts:
+
+```bash
+# Switch theme
+neoarc config theme sunny_beach_day
+
+# List available themes
+neoarc config theme list
+```
+
+Available themes: `dark`, `light`, `sunny_beach_day`, `olive_garden_feast`, `summer_ocean_breeze`, `refreshing_summer_fun`, `black_gold_elegance`, `vibrant_color_fiesta`, `light_steel`, `golden_twilight`, `deep_sea`, `bright_green`, `vivid_nightfall`.
+
+The selection is persisted in `config.toml`:
+```toml
+theme = "sunny_beach_day"
+```
 
 ## Caching
 

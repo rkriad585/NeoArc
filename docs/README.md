@@ -31,6 +31,7 @@ Featuring a premium **"Liquid Glass" / "Nothing OS" UI**, NeoArc offers a cyberp
 - **Argument Passing:** CLI arguments after the alias name are forwarded to the script (`$1`, `$args[0]`, `sys.argv[1]`, etc.)
 - **Tab Completion:** `neoarc completion bash|zsh|powershell` generates shell-specific completions for commands, flags, and alias names
 - **Stealth/Speed:** written in Go for high performance and single-binary deployment.
+- **Themes:** 13 built-in color themes with runtime switching via `neoarc config theme <name>`.
 
 ---
 
@@ -54,6 +55,7 @@ NEOARC/
 |   |   |   +-- cli_test.go         # CLI unit tests (40+)
 |   |   +-- config/
 |   |       +-- config.go           # Cross-platform config directory helpers (TOML)
+|   |       +-- theme.go            # Built-in color themes (13 themes)
 |   +-- tests/integration_test.go   # Integration tests
 |   +-- go.mod / go.sum
 |
@@ -213,12 +215,26 @@ Use the `--config` global flag to override:
 neoarc --config /path/to/custom.toml run my-alias
 ```
 
+### Theme Configuration
+
+The CLI includes 13 built-in color themes for help output, update messages, and confirmation prompts. Switch themes at runtime:
+
+```bash
+neoarc config theme sunny_beach_day
+neoarc config theme list          # List all available themes
+```
+
+Theme names: `dark`, `light`, `sunny_beach_day`, `olive_garden_feast`, `summer_ocean_breeze`, `refreshing_summer_fun`, `black_gold_elegance`, `vibrant_color_fiesta`, `light_steel`, `golden_twilight`, `deep_sea`, `bright_green`, `vivid_nightfall`
+
+The theme is persisted in `config.toml` as `theme = "name"`.
+
 ### Config File Example
 
 ```toml
 server_url = "http://localhost:59248"
 api_token = "your-api-token-here"
 insecure_tls = false
+theme = "sunny_beach_day"
 ```
 
 ### Legacy Migration

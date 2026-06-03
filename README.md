@@ -199,6 +199,61 @@ On first run, the CLI automatically migrates config from old paths:
 
 Old JSON config files are converted to the new TOML format automatically.
 
+---
+
+## Theme Configuration
+
+The CLI includes 13 built-in color themes that can be switched at runtime. Themes apply color to help output, update messages, and confirmation prompts.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `neoarc config theme list` | List all available themes |
+| `neoarc config theme <name>` | Switch to a named theme |
+
+### Available Themes
+
+| Name | Description | Colors (Hex) |
+|------|-------------|--------------|
+| `dark` | Dark Theme | `#0f172a #111827 #1e293b #334155 #64748b #e2e8f0` |
+| `light` | Light Theme | `#ffffff #f8fafc #e2e8f0 #cbd5e1 #475569 #0f172a` |
+| `sunny_beach_day` | Sunny Beach Day **(Default)** | `#264653 #2a9d8f #e9c46a #f4a261 #e76f51` |
+| `olive_garden_feast` | Olive Garden Feast | `#606c38 #283618 #fefae0 #dda15e #bc6c25` |
+| `summer_ocean_breeze` | Summer Ocean Breeze | `#e63946 #f1faee #a8dadc #457b9d #1d3557` |
+| `refreshing_summer_fun` | Refreshing Summer Fun | `#8ecae6 #219ebc #023047 #ffb703 #fb8500` |
+| `black_gold_elegance` | Black & Gold Elegance | `#000000 #14213d #fca311 #e5e5e5 #ffffff` |
+| `vibrant_color_fiesta` | Vibrant Color Fiesta | `#ffbe0b #fb5607 #ff006e #8338ec #3a86ff` |
+| `light_steel` | Light Steel | `#f8f9fa #e9ecef #dee2e6 #ced4da #adb5bd #6c757d #495057 #343a40 #212529` |
+| `golden_twilight` | Golden Twilight | `#000814 #001d3d #003566 #ffc300 #ffd60a` |
+| `deep_sea` | Deep Sea | `#0d1b2a #1b263b #415a77 #778da9 #e0e1dd` |
+| `bright_green` | Bright Green | `#004b23 #006400 #007200 #008000 #38b000 #70e000 #9ef01a #ccff33` |
+| `vivid_nightfall` | Vivid Nightfall | `#10002b #240046 #3c096c #5a189a #7b2cbf #9d4edd #c77dff #e0aaff` |
+
+### Theme Persistence
+
+The active theme is saved to `config.toml` and persists across sessions:
+
+```toml
+server_url = "http://localhost:59248"
+api_token = "your-api-token"
+insecure_tls = false
+theme = "vibrant_color_fiesta"
+```
+
+### Examples
+
+```bash
+# List all themes
+neoarc config theme list
+
+# Switch to dark theme
+neoarc config theme dark
+
+# Switch to a colorful theme
+neoarc config theme vibrant_color_fiesta
+```
+
 ## Server Configuration Reference
 
 All server configuration is via environment variables prefixed with `NEOARC_`.
@@ -353,6 +408,7 @@ neoarc config <server-url>         — Set NeoArc server URL
 neoarc config-token <tok>          — Set API token
 neoarc config insecure             — Skip TLS certificate verification
 neoarc config secure               — Re-enable TLS verification
+neoarc config theme <name>         — Set color theme (use 'list' for all)
 neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
 neoarc update                      — Self-update to the latest version

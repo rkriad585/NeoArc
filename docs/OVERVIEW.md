@@ -35,6 +35,7 @@ NeoArc is an innovative, cross-platform Command Obfuscation and Alias Execution 
 - **Yes Mode:** `--yes` flag skips the execution confirmation prompt for automation.
 - **Argument Passing:** Arguments after the alias name are forwarded to the executed script (`$1`, `$args[0]`, `sys.argv[1]`, etc.).
 - **Shell Tab Completion:** `neoarc completion bash|zsh|powershell` generates completions for subcommands, flags, and alias names.
+- **Color Themes:** 13 built-in themes switchable at runtime via `neoarc config theme <name>`.
 
 ## Technology Stack
 

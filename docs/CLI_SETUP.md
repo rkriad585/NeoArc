@@ -62,8 +62,15 @@ All platforms: `~/.config/neostore/neoarc/config.toml`
 
 If no config file exists, the CLI creates one with a default server URL of `http://localhost:59248`.
 
-You can also use a custom config file with the `--config` flag:
+The config file also supports a `theme` field — see [Theme Configuration](USAGE_GUIDE.md#theme-configuration) for details.
+
+Available config commands:
 ```bash
+neoarc config <server-url>
+neoarc config insecure
+neoarc config secure
+neoarc config theme <name>
+neoarc config-token <token>
 neoarc --config /path/to/config.toml run my-alias
 ```
 

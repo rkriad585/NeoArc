@@ -37,6 +37,19 @@ type Config struct {
 	ServerURL   string `toml:"server_url" json:"server_url"`
 	APIToken    string `toml:"api_token,omitempty" json:"api_token,omitempty"`
 	InsecureTLS bool   `toml:"insecure_tls,omitempty" json:"insecure_tls,omitempty"`
+	Theme       string `toml:"theme,omitempty" json:"theme,omitempty"`
+}
+
+func resolveTheme(cfg Config) config.RoleColors {
+	return config.ResolveTheme(cfg.Theme)
+}
+
+func sprintTheme(cfg Config, role config.Role, text string) string {
+	t, ok := config.FindTheme(cfg.Theme)
+	if !ok {
+		t = config.DefaultTheme()
+	}
+	return config.Colorize(text, t.Hex(role))
 }
 
 type AliasResponse struct {
@@ -229,7 +242,9 @@ func ConfirmExecution(aliasName string) bool {
 		return true
 	}
 
-	fmt.Printf("Execute alias '%s'? This will run code from the remote server. [y/N]: ", aliasName)
+	cfg := LoadConfig()
+	p := resolveTheme(cfg)
+	fmt.Printf("Execute alias '%s'? %s [y/N]: ", p.Accent.Sprint(aliasName), p.Warning.Sprint("This will run code from the remote server."))
 	reader := bufio.NewReader(os.Stdin)
 	line, _ := reader.ReadString('\n')
 	line = strings.TrimSpace(strings.ToLower(line))
@@ -818,7 +833,10 @@ func resolveDownloadName() string {
 }
 
 func selfUpdate() int {
-	fmt.Println(">>> Checking for updates...")
+	cfg := LoadConfig()
+	p := resolveTheme(cfg)
+
+	fmt.Println(p.Primary.Sprint(">>> Checking for updates..."))
 
 	current := resolveVersion(RepoPath)
 	if current == "" {
@@ -832,16 +850,16 @@ func selfUpdate() int {
 		return 1
 	}
 
-	fmt.Printf("    Current: %s\n", current)
-	fmt.Printf("    Latest : %s\n", latest)
+	fmt.Printf("    Current: %s\n", p.Success.Sprint(current))
+	fmt.Printf("    Latest : %s\n", p.Accent.Sprint(latest))
 
 	cmp := compareVersions(current, latest)
 	if cmp >= 0 {
-		fmt.Println("OK   Already up to date.")
+		fmt.Println(p.Success.Sprint("OK   Already up to date."))
 		return 0
 	}
 
-	fmt.Printf(">>> New version %s available. Updating...\n", latest)
+	fmt.Printf(">>> New version %s available. Updating...\n", p.Accent.Sprint(latest))
 
 	downloadName := resolveDownloadName()
 	if downloadName == "" {
@@ -906,7 +924,7 @@ func selfUpdate() int {
 		return 1
 	}
 
-	fmt.Printf("OK   Updated to %s (%s)\n", latest, exePath)
+	fmt.Println(p.Success.Sprintf("OK   Updated to %s (%s)", latest, exePath))
 	return 0
 }
 
@@ -961,8 +979,11 @@ del /f /q "%%~f0"
 }
 
 func ShowHelp() {
-	fmt.Println(`NeoArc - Cross-Platform Alias Executor
-Usage:
+	cfg := LoadConfig()
+	p := resolveTheme(cfg)
+
+	fmt.Println(p.Primary.Sprint("NeoArc - Cross-Platform Alias Executor"))
+	fmt.Println(`Usage:
   neoarc get <alias> [args...]       : Print the code for the alias
   neoarc run <alias> [args...]       : Run the alias command with args
   neoarc <alias> [args...]           : Run the alias command (shorthand)
@@ -970,6 +991,7 @@ Usage:
   neoarc config-token <tok>          : Set the API authentication token
   neoarc config insecure             : Enable insecure TLS (skip certificate verify)
   neoarc config secure               : Disable insecure TLS (default, verify certs)
+  neoarc config theme <name>         : Set the active color theme (use 'list' to show all)
   neoarc update                      : Check for updates and self-update the binary
   neoarc help                        : Show help menu
   neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
@@ -991,7 +1013,15 @@ Arguments after <alias> are passed through to the executed command.
   python     : accessible via sys.argv[1], sys.argv[2]
   cmd        : accessible via %1, %2`)
 
-	fmt.Printf("\nVersion  : %s\n", resolveVersion(RepoPath))
+	themeLabel := cfg.Theme
+	if themeLabel == "" {
+		themeLabel = config.DefaultTheme().Label
+	} else if t, ok := config.FindTheme(themeLabel); ok {
+		themeLabel = t.Label
+	}
+	fmt.Println()
+	fmt.Printf("Version  : %s\n", p.Success.Sprint(resolveVersion(RepoPath)))
+	fmt.Printf("Theme    : %s\n", p.Accent.Sprint(themeLabel))
 	fmt.Printf("Config   : %s\n", ConfigPath())
 }
 
@@ -1025,6 +1055,30 @@ func Run(args []string) int {
 	}
 
 	if args[1] == "config" && len(args) >= 3 {
+		if args[2] == "theme" && len(args) >= 4 {
+			if args[3] == "list" {
+				fmt.Println("Available themes:")
+				for _, t := range config.Themes {
+					line := fmt.Sprintf("  %-30s %s", t.Name, t.Label)
+					if t.Name == config.DefaultTheme().Name {
+						line = config.ColorizeBold(line, t.Hex(config.RolePrimary))
+					}
+					fmt.Println(line)
+				}
+				return 0
+			}
+			themeName := args[3]
+			if _, ok := config.FindTheme(themeName); !ok {
+				fmt.Fprintf(os.Stderr, "Error: unknown theme %q. Use 'neoarc config theme list' to see available themes.\n", themeName)
+				return 1
+			}
+			cfg := LoadConfig()
+			cfg.Theme = themeName
+			SaveConfig(cfg)
+			fmt.Println(sprintTheme(cfg, config.RoleSuccess, "Theme updated successfully!"))
+			fmt.Printf("Active theme: %s\n", sprintTheme(cfg, config.RoleAccent, themeName))
+			return 0
+		}
 		if args[2] == "insecure" {
 			cfg := LoadConfig()
 			cfg.InsecureTLS = true

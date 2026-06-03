@@ -19,4 +19,5 @@ uv.lock
 
 *.db
 
-**/bin/**
+**/bin/
+*.exe**

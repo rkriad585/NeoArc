@@ -280,6 +280,86 @@ func TestRunNoArgs(t *testing.T) {
 	}
 }
 
+func TestRunConfigThemeSet(t *testing.T) {
+	_ = tempDir(t)
+	code := Run([]string{"neoarc", "config", "theme", "dark"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+	cfg := LoadConfig()
+	if cfg.Theme != "dark" {
+		t.Fatalf("expected theme 'dark', got %q", cfg.Theme)
+	}
+}
+
+func TestRunConfigThemeUnknown(t *testing.T) {
+	r, w, _ := os.Pipe()
+	old := os.Stderr
+	os.Stderr = w
+
+	code := Run([]string{"neoarc", "config", "theme", "nonexistent"})
+
+	w.Close()
+	os.Stderr = old
+
+	var buf strings.Builder
+	io.Copy(&buf, r)
+	if !strings.Contains(buf.String(), "unknown theme") {
+		t.Fatal("expected 'unknown theme' error on stderr")
+	}
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
+	}
+}
+
+func TestRunConfigThemeList(t *testing.T) {
+	r, w, _ := os.Pipe()
+	old := os.Stdout
+	os.Stdout = w
+
+	code := Run([]string{"neoarc", "config", "theme", "list"})
+
+	w.Close()
+	os.Stdout = old
+
+	var buf strings.Builder
+	io.Copy(&buf, r)
+	if !strings.Contains(buf.String(), "Available themes") {
+		t.Fatal("expected 'Available themes' in output")
+	}
+	if !strings.Contains(buf.String(), "dark") {
+		t.Fatal("expected 'dark' theme in list")
+	}
+	if !strings.Contains(buf.String(), "sunny_beach_day") {
+		t.Fatal("expected 'sunny_beach_day' in list")
+	}
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestHelpContainsConfigTheme(t *testing.T) {
+	r, w, _ := os.Pipe()
+	old := os.Stdout
+	os.Stdout = w
+
+	ShowHelp()
+
+	w.Close()
+	os.Stdout = old
+
+	var buf strings.Builder
+	io.Copy(&buf, r)
+	output := buf.String()
+
+	if !strings.Contains(output, "config theme") {
+		t.Fatal("help should contain config theme command")
+	}
+	if !strings.Contains(output, "Theme") {
+		t.Fatal("help should show theme info")
+	}
+}
+
 func TestRunConfigServerURL(t *testing.T) {
 	_ = tempDir(t)
 	code := Run([]string{"neoarc", "config", "http://test:1234"})
