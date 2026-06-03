@@ -409,18 +409,19 @@ neoarc config-token <tok>          — Set API token
 neoarc config insecure             — Skip TLS certificate verification
 neoarc config secure               — Re-enable TLS verification
 neoarc config theme <name>         — Set color theme (use 'list' for all)
+neoarc version                     — Show the installed version
 neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
 neoarc update                      — Self-update to the latest version
 
-Standalone flags:
+Flags:
+  -v, --version                    — Show the installed version
+  -h, --help                       — Show this help menu
   --install                        — Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                  — Remove NeoArc config, cache, and binary
-  --config <path>                  — Use a custom config file path (can be used with any command)
-
-Flags (place before alias):
-  --dry-run                        — Print alias code without executing
-  --yes                            — Skip execution confirmation prompt
+  --config <path>                  — Use a custom config file path (before any command)
+  --dry-run                        — Print alias code without executing (before alias)
+  --yes                            — Skip execution confirmation prompt (before alias)
 
 Args after <alias> are passed through to the executed command:
   bash/sh:    $1, $2, $@

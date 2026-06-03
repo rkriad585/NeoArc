@@ -210,6 +210,15 @@ func TestShowHelp(t *testing.T) {
 	if !strings.Contains(output, "completion") {
 		t.Fatal("help should contain completion command")
 	}
+	if !strings.Contains(output, "-v, --version") {
+		t.Fatal("help should contain -v flag")
+	}
+	if !strings.Contains(output, "-h, --help") {
+		t.Fatal("help should contain -h flag")
+	}
+	if !strings.Contains(output, "version") {
+		t.Fatal("help should contain version command")
+	}
 }
 
 func TestCacheTTL(t *testing.T) {
@@ -289,6 +298,34 @@ func TestRunConfigThemeSet(t *testing.T) {
 	cfg := LoadConfig()
 	if cfg.Theme != "dark" {
 		t.Fatalf("expected theme 'dark', got %q", cfg.Theme)
+	}
+}
+
+func TestRunConfigThemeNoArg(t *testing.T) {
+	code := Run([]string{"neoarc", "config", "theme"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0 (usage message), got %d", code)
+	}
+}
+
+func TestRunConfigThemeHelp(t *testing.T) {
+	code := Run([]string{"neoarc", "config", "theme", "--help"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestRunConfigHelpFlag(t *testing.T) {
+	code := Run([]string{"neoarc", "config", "--help"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0 (usage), got %d", code)
+	}
+}
+
+func TestRunConfigUnknownSubcommand(t *testing.T) {
+	code := Run([]string{"neoarc", "config", "bogus-sub", "extra"})
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
 	}
 }
 
@@ -384,6 +421,41 @@ func TestRunConfigToken(t *testing.T) {
 	}
 }
 
+func TestVersionFlag(t *testing.T) {
+	code := Run([]string{"neoarc", "-v"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestVersionLongFlag(t *testing.T) {
+	code := Run([]string{"neoarc", "--version"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestVersionCommand(t *testing.T) {
+	code := Run([]string{"neoarc", "version"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestHelpShortFlag(t *testing.T) {
+	code := Run([]string{"neoarc", "-h"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
+func TestHelpLongFlag(t *testing.T) {
+	code := Run([]string{"neoarc", "--help"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d", code)
+	}
+}
+
 func TestRunConfigInsecure(t *testing.T) {
 	_ = tempDir(t)
 	code := Run([]string{"neoarc", "config", "insecure"})
@@ -414,7 +486,7 @@ func TestRunUnknownFlag(t *testing.T) {
 	old := os.Stderr
 	os.Stderr = w
 
-	code := Run([]string{"neoarc", "--bogus", "test"})
+	code := Run([]string{"neoarc", "--bogus"})
 
 	w.Close()
 	os.Stderr = old

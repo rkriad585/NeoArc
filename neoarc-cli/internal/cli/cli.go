@@ -991,21 +991,20 @@ func ShowHelp() {
   neoarc config-token <tok>          : Set the API authentication token
   neoarc config insecure             : Enable insecure TLS (skip certificate verify)
   neoarc config secure               : Disable insecure TLS (default, verify certs)
-  neoarc config theme <name>         : Set the active color theme (use 'list' to show all)
+  neoarc config theme <name>         : Set the active color theme ('list' for all)
   neoarc update                      : Check for updates and self-update the binary
-  neoarc help                        : Show help menu
+  neoarc version                     : Show the installed version
+  neoarc help                        : Show this help menu
   neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
 
-Standalone flags:
+Flags:
+  -v, --version                      : Show the installed version
+  -h, --help                         : Show this help menu
   --install                          : Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                    : Remove NeoArc config, cache, and binary from the system
-
-Options (place before <alias>):
+  --config <path>                    : Use a custom config file path (before any command)
   --dry-run                          : Print the alias code without executing
   --yes                              : Skip execution confirmation prompt
-
-Global flags:
-  --config <path>                    : Use a custom config file path
 
 Arguments after <alias> are passed through to the executed command.
   bash/sh    : accessible via $1, $2, $@
@@ -1049,14 +1048,31 @@ func Run(args []string) int {
 		return 0
 	}
 
-	if args[1] == "help" {
+	switch args[1] {
+	case "help", "-h", "--help":
 		ShowHelp()
+		return 0
+	case "-v", "--version", "version":
+		fmt.Println("NeoArc version", resolveVersion(RepoPath))
 		return 0
 	}
 
 	if args[1] == "config" && len(args) >= 3 {
-		if args[2] == "theme" && len(args) >= 4 {
-			if args[3] == "list" {
+		sub := args[2]
+		switch sub {
+		case "theme":
+			if len(args) < 4 {
+				fmt.Println("Usage: neoarc config theme <name>")
+				fmt.Println("       neoarc config theme list")
+				return 0
+			}
+			opt := args[3]
+			if opt == "-h" || opt == "--help" {
+				fmt.Println("Usage: neoarc config theme <name>")
+				fmt.Println("       neoarc config theme list")
+				return 0
+			}
+			if opt == "list" {
 				fmt.Println("Available themes:")
 				for _, t := range config.Themes {
 					line := fmt.Sprintf("  %-30s %s", t.Name, t.Label)
@@ -1067,35 +1083,43 @@ func Run(args []string) int {
 				}
 				return 0
 			}
-			themeName := args[3]
-			if _, ok := config.FindTheme(themeName); !ok {
-				fmt.Fprintf(os.Stderr, "Error: unknown theme %q. Use 'neoarc config theme list' to see available themes.\n", themeName)
+			if _, ok := config.FindTheme(opt); !ok {
+				fmt.Fprintf(os.Stderr, "Error: unknown theme %q. Use 'neoarc config theme list' to see available themes.\n", opt)
 				return 1
 			}
 			cfg := LoadConfig()
-			cfg.Theme = themeName
+			cfg.Theme = opt
 			SaveConfig(cfg)
 			fmt.Println(sprintTheme(cfg, config.RoleSuccess, "Theme updated successfully!"))
-			fmt.Printf("Active theme: %s\n", sprintTheme(cfg, config.RoleAccent, themeName))
+			fmt.Printf("Active theme: %s\n", sprintTheme(cfg, config.RoleAccent, opt))
 			return 0
-		}
-		if args[2] == "insecure" {
+		case "insecure":
 			cfg := LoadConfig()
 			cfg.InsecureTLS = true
 			SaveConfig(cfg)
 			fmt.Println("Insecure TLS enabled.")
 			return 0
-		}
-		if args[2] == "secure" {
+		case "secure":
 			cfg := LoadConfig()
 			cfg.InsecureTLS = false
 			SaveConfig(cfg)
 			fmt.Println("Insecure TLS disabled.")
 			return 0
-		}
-		if len(args) == 3 {
+		default:
+			if strings.HasPrefix(sub, "-") {
+				fmt.Println("Usage: neoarc config <server-url>")
+				fmt.Println("       neoarc config insecure")
+				fmt.Println("       neoarc config secure")
+				fmt.Println("       neoarc config theme <name>")
+				return 0
+			}
+			if len(args) > 3 {
+				fmt.Fprintf(os.Stderr, "Error: unexpected argument %q after %q\n", args[3], sub)
+				fmt.Println("Usage: neoarc config <server-url>")
+				return 1
+			}
 			cfg := LoadConfig()
-			cfg.ServerURL = args[2]
+			cfg.ServerURL = sub
 			SaveConfig(cfg)
 			fmt.Println("Config updated! Server URL:", cfg.ServerURL)
 			return 0

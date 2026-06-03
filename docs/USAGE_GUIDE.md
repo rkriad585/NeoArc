@@ -15,9 +15,14 @@ neoarc config http://localhost:59248
 | `neoarc config secure` | Disable TLS skip-verify |
 | `neoarc config theme <name>` | Set color theme (`list` to show all) |
 | `neoarc config-token <token>` | Set API token in local config file |
+| `neoarc config theme <name>` | Set active color theme |
+| `neoarc config theme list` | List all available themes |
 | `neoarc completion <shell>` | Generate shell completion script |
+| `neoarc version` | Show the installed version |
 | `neoarc help` | Show help |
-| `neoarc --config <path>` | Use a custom config file (global flag) |
+| `-v, --version` | Show the installed version |
+| `-h, --help` | Show this help menu |
+| `--config <path>` | Use a custom config file (before any command) |
 
 ## Alias Commands
 
@@ -27,21 +32,17 @@ neoarc config http://localhost:59248
 | `neoarc run <alias> [args...]` | Fetch and execute alias with args |
 | `neoarc <alias> [args...]` | Shorthand for `run` |
 
-### Standalone Flags
-
-| Flag | Description |
-|------|-------------|
-| `--install` | Download and install NeoArc to `~/.config/neostore/neoarc/bin/` |
-| `--selfuninstall` | Remove NeoArc config, cache, and binary from the system |
-
 ### Flags
 
-Flags must be placed before the alias name:
-
-| Flag | Description |
-|------|-------------|
-| `--dry-run <alias>` | Print code without executing |
-| `--yes <alias>` | Skip trust confirmation prompt |
+| Flag | Description | Position |
+|------|-------------|----------|
+| `-v, --version` | Show the installed version | Anywhere |
+| `-h, --help` | Show help menu | Anywhere |
+| `--install` | Download and install NeoArc to `~/.config/neostore/neoarc/bin/` | After `neoarc` |
+| `--selfuninstall` | Remove NeoArc config, cache, and binary | After `neoarc` |
+| `--config <path>` | Use a custom config file | Before any command |
+| `--dry-run <alias>` | Print code without executing | Before alias name |
+| `--yes <alias>` | Skip trust confirmation prompt | Before alias name |
 
 ### Argument Passing
 
