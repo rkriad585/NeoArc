@@ -48,6 +48,9 @@ neoarc config-token <token>
 neoarc completion <shell>
 neoarc update
 neoarc self-update
+neoarc --selfuninstall
+neoarc --uninstall
+neoarc -u
 neoarc get <alias> [args...]
 neoarc run <alias> [args...]
 neoarc <alias> [args...]
@@ -167,6 +170,8 @@ Remove NeoArc config, cache, and binary from your system:
 ```bash
 # Via the CLI (self-uninstall)
 neoarc --selfuninstall
+neoarc --uninstall
+neoarc -u
 ```
 
 This deletes the config directory (`~/.config/neostore/neoarc/`), removes the binary on Linux/macOS, and creates a deferred delete script on Windows. PATH removal instructions are printed after the operation.

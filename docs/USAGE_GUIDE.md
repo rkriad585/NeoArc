@@ -28,6 +28,7 @@ neoarc config http://localhost:59248
 | `-h, --help` | Show this help menu |
 | `--config <path>` | Use a custom config file (before any command) |
 | `--proxy <url>, -p <url>` | Use proxy for self-update download (after update command) |
+| `-u, --uninstall, --selfuninstall` | Remove NeoArc config, cache, and binary |
 
 ## Alias Commands
 
@@ -44,7 +45,7 @@ neoarc config http://localhost:59248
 | `-v, --version` | Show the installed version | Anywhere |
 | `-h, --help` | Show help menu | Anywhere |
 | `--install` | Download and install NeoArc to `~/.config/neostore/neoarc/bin/` | After `neoarc` |
-| `--selfuninstall` | Remove NeoArc config, cache, and binary | After `neoarc` |
+| `-u, --uninstall, --selfuninstall` | Remove NeoArc config, cache, and binary | After `neoarc` |
 | `--config <path>` | Use a custom config file | Before any command |
 | `--dry-run <alias>` | Print code without executing | Before alias name |
 | `--yes <alias>` | Skip trust confirmation prompt | Before alias name |

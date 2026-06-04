@@ -864,6 +864,12 @@ func TestHelpContainsSelfUninstall(t *testing.T) {
 	if !strings.Contains(output, "--selfuninstall") {
 		t.Fatal("help should contain --selfuninstall flag")
 	}
+	if !strings.Contains(output, "-u") {
+		t.Fatal("help should contain -u flag")
+	}
+	if !strings.Contains(output, "--uninstall") {
+		t.Fatal("help should contain --uninstall flag")
+	}
 }
 
 func TestHelpContainsUpdate(t *testing.T) {

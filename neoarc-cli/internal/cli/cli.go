@@ -1006,7 +1006,7 @@ Flags:
   -v, --version                      : Show the installed version
   -h, --help                         : Show this help menu
   --install                          : Download and install NeoArc to ~/.config/neostore/neoarc/bin/
-  --selfuninstall                    : Remove NeoArc config, cache, and binary from the system
+  -u, --uninstall, --selfuninstall   : Remove NeoArc config, cache, and binary from the system
   --config <path>                    : Use a custom config file path (before any command)
   --proxy <url>, -p <url>            : Use proxy for self-update download (after update command)
   --dry-run                          : Print the alias code without executing
@@ -1166,7 +1166,7 @@ func Run(args []string) int {
 		return selfInstall()
 	}
 
-	if args[1] == "--selfuninstall" {
+	if args[1] == "--selfuninstall" || args[1] == "-u" || args[1] == "--uninstall" {
 		return selfUninstall()
 	}
 
