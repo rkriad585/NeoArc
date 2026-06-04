@@ -7,15 +7,24 @@ This guide details the steps to set up and run the NeoArc web server, which acts
 *   **Python 3.8+:** Ensure Python is installed on your system. You can download it from [python.org](https://www.python.org/downloads/).
 *   **Internet Connection:** Required to download Python packages.
 
+## Quick Start with Docker
+
+```bash
+git clone https://github.com/rkriad585/NeoArc.git
+cd NeoArc
+docker compose up -d
+```
+
+This starts the server on port 59248. Set required env vars in a `.env` file first (see [Configuration](#configuration) below).
+
 ## Installation Steps
 
 1.  **Clone the Repository (if not already done):**
     If you haven't already, clone the NeoArc project repository:
     ```bash
-    git clone https://github.com/rkriad585/neoarc-cli.git # Assuming this is the repo
-    cd neoarc-cli/neoarc-server
+    git clone https://github.com/rkriad585/NeoArc.git
+    cd NeoArc/neoarc-server
     ```
-    *(Note: The provided codebase context does not include a git repository, so this is a common assumption for project setup.)*
 
 2.  **Navigate to the Server Directory:**
     Change your current directory to the `neoarc-server` folder:

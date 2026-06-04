@@ -46,6 +46,14 @@ NEOARC/
 +-- build.sh                        # Root-level Unix Build Script
 +-- installer.ps1                   # One-line Windows installer
 +-- installer.sh                    # One-line Unix installer
++-- Dockerfile                      # Multi-stage CLI Docker build
++-- docker-compose.yml              # Server Docker stack
++-- Makefile                        # Common dev/build commands
++-- CMakeLists.txt                  # CMake IDE integration
++-- SECURITY.md                     # Security policy
++-- CODE_OF_CONDUCT.md              # Contributor covenant
++-- CONTRIBUTING.md                 # Contribution guidelines
++-- LICENSE                         # MIT license
 |
 +-- neoarc-cli/                     # Golang Client
 |   +-- cmd/neoarc/main.go          # CLI Entry point
@@ -335,6 +343,23 @@ NeoArc comes with a built-in Super Admin dashboard to moderate the grid.
 - **Backend:** Python Flask, Blueprint Architecture, SQLite3, waitress (production).
 - **Client:** Golang (`net/http`, `os/exec`).
 - **Design Language:** Nothing OS (Dot Matrix Typography & Monochrome/Red Palette).
+
+---
+
+## Documentation Index
+
+| Document | Description |
+|----------|-------------|
+| [README.md](README.md) | This file — project overview and setup |
+| [introduction.md](introduction.md) | Introduction to NeoArc concepts |
+| [OVERVIEW.md](OVERVIEW.md) | Detailed feature overview |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and data flow |
+| [CLI_SETUP.md](CLI_SETUP.md) | CLI build and installation guide |
+| [SERVER_SETUP.md](SERVER_SETUP.md) | Server setup and configuration |
+| [USAGE_GUIDE.md](USAGE_GUIDE.md) | CLI usage reference |
+| [DOCKER.md](DOCKER.md) | Docker deployment guide |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Development workflow and build guide |
+| [server/](server/) | Server-specific documentation |
 
 ---
 

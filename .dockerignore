@@ -1,7 +1,42 @@
+# Git
+.git
+.gitattributes
+.gitignore
+.github
+
+# Build outputs
+bin/
+neoarc-cli/neoarc.exe
 **/__pycache__
 **/*.pyc
 **/*.pyo
-**/.env
-**/neoarc.db
-**/node_modules
-.git
+**/*.py-e
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Docker
+.dockerignore
+
+# Testing
+neoarc-server/tests/
+neoarc-cli/tests/
+
+# Docs source
+docs/

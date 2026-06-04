@@ -21,6 +21,12 @@
 *.yml text
 *.env.example text
 
+# Makefile
+Makefile text
+CMakeLists.txt text
+Dockerfile text
+.dockerignore text
+
 # Build outputs
 *.exe binary
 *.dll binary
