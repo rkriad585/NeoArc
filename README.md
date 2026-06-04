@@ -60,7 +60,7 @@ Aliases are created and managed via the web dashboard, stored in a SQLite databa
 
 ```
 NeoArc/
-├── .version                    # Version file (v1.5.0)
+├── .version                    # Version file (v1.5.1)
 ├── build.ps1                   # Root-level Windows cross-compile script
 ├── build.sh                    # Root-level Unix cross-compile script
 ├── installer.ps1               # One-line Windows installer
@@ -336,7 +336,7 @@ python wsgi.py
 Push a tag and let GitHub Actions build all 6 platform binaries automatically:
 
 ```bash
-git tag v1.5.0
+git tag v1.5.1
 git push --tags
 ```
 
@@ -411,7 +411,7 @@ changelog ───────────────────────�
 
 | Variable | Source |
 |----------|--------|
-| `main.Version` | `.version` file (e.g. `v1.5.0`) |
+| `main.Version` | `.version` file (e.g. `v1.5.1`) |
 | `main.Commit` | Short git SHA (8 chars) |
 | `main.PublisherName` | `rkriad585` |
 | `main.PublisherEmail` | `rkriad585@gmail.com` |
@@ -420,15 +420,15 @@ changelog ───────────────────────�
 
 ```bash
 # 1. Update .version file
-echo "v1.5.0" > .version
+echo "v1.5.1" > .version
 
 # 2. Commit and push
 git add .version
-git commit -m "Release v1.5.0"
+git commit -m "Release v1.5.1"
 git push
 
 # 3. Tag and push
-git tag v1.5.0
+git tag v1.5.1
 git push --tags
 ```
 

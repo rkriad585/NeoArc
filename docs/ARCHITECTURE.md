@@ -162,7 +162,7 @@ NeoArc uses a **GitHub Actions release workflow** (`.github/workflows/release.ym
 ### Triggering a Release
 
 ```bash
-git tag v1.5.0     # or any v* tag
+git tag v1.5.1     # or any v* tag
 git push --tags    # triggers the pipeline
 ```
 

@@ -151,12 +151,12 @@ python -m pytest tests/ -v
 
 1. Update `.version`:
    ```bash
-   echo "v1.5.0" > .version
+   echo "v1.5.1" > .version
    ```
 2. Commit and tag:
    ```bash
-   git add .version && git commit -m "Release v1.5.0"
-   git tag v1.5.0 && git push --tags
+   git add .version && git commit -m "Release v1.5.1"
+   git tag v1.5.1 && git push --tags
    ```
 3. The GitHub Actions workflow builds all binaries and publishes a release.
 
