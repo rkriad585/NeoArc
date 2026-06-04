@@ -47,6 +47,7 @@ neoarc config secure
 neoarc config-token <token>
 neoarc completion <shell>
 neoarc update
+neoarc self-update
 neoarc get <alias> [args...]
 neoarc run <alias> [args...]
 neoarc <alias> [args...]
@@ -80,13 +81,16 @@ neoarc config secure
 neoarc config-token ncl_abc123...
 ```
 
-**`neoarc update`** — Check for updates and replace the current binary with the latest release version.
+**`neoarc update`** / **`neoarc self-update`** — Check for updates and replace the current binary with the latest release version.
 
 ```
 neoarc update
+neoarc self-update
+neoarc update --proxy http://proxy:8080
+neoarc self-update -p http://proxy:8080
 ```
 
-The command fetches the latest version from GitHub, compares it to the current version, downloads the appropriate binary for your platform, and replaces the running executable (via deferred batch script on Windows).
+The command fetches the latest version from GitHub, compares it to the current version, downloads the appropriate binary for your platform, and replaces the running executable (via `.old` rename on Windows, direct rename on Unix).
 
 **`neoarc get <alias> [args...]`** — Fetch and display the alias command without executing it.
 

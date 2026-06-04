@@ -155,8 +155,10 @@ def test_create_alias_empty_command(client):
 def test_delete_alias(client):
     register_user(client)
     login(client)
+    resp = client.get('/dashboard')
+    csrf = extract_csrf(resp.data)
     create_alias(client, name="delete_me", command="echo gone")
-    resp = client.get('/delete/1', follow_redirects=True)
+    resp = client.get(f'/delete/1?csrf_token={csrf}', follow_redirects=True)
     assert resp.status_code == 200
     assert b'purged' in resp.data.lower()
 
@@ -289,7 +291,9 @@ def test_profile_node_count(client):
     create_alias(client, name="alias_a", command="echo a")
     create_alias(client, name="alias_b", command="echo b")
     resp = client.get('/profile')
-    assert b'2' in resp.data or b'node_count' not in resp.data
+    assert resp.status_code == 200
+    assert b'ACTIVE ALIAS NODES' in resp.data
+    assert b'2' in resp.data
 
 
 def test_dashboard_shows_created_at(client):
@@ -451,10 +455,14 @@ def test_forgot_password_rate_limiting(client):
 def test_delete_other_users_alias_forbidden(client):
     register_user(client, username="user_a", email="a@test.com")
     login(client, username="user_a")
+    resp = client.get('/dashboard')
+    csrf_a = extract_csrf(resp.data)
     create_alias(client, name="secret_alias", command="echo secret")
     client.get('/logout', follow_redirects=True)
 
     register_user(client, username="user_b", email="b@test.com")
     login(client, username="user_b")
-    resp = client.get('/delete/1', follow_redirects=True)
+    resp = client.get('/dashboard')
+    csrf_b = extract_csrf(resp.data)
+    resp = client.get(f'/delete/1?csrf_token={csrf_b}', follow_redirects=True)
     assert resp.status_code == 200

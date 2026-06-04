@@ -566,6 +566,7 @@ neoarc version                     — Show the installed version
 neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)
 neoarc update                      — Self-update to the latest version
+neoarc self-update                 — Alias for update
 
 Flags:
   -v, --version                    — Show the installed version
@@ -573,6 +574,7 @@ Flags:
   --install                        — Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                  — Remove NeoArc config, cache, and binary
   --config <path>                  — Use a custom config file path (before any command)
+  --proxy <url>, -p <url>          — Use proxy for self-update download (after update command)
   --dry-run                        — Print alias code without executing (before alias)
   --yes                            — Skip execution confirmation prompt (before alias)
 

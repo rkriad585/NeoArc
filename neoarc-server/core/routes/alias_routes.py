@@ -11,7 +11,7 @@ alias_bp = Blueprint('alias', __name__)
 
 
 def _csrf_check() -> bool:
-    token = request.form.get('csrf_token') or ''
+    token = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token') or ''
     stored = session.get('_csrf_token')
     if not stored or not secrets.compare_digest(stored, token):
         flash('Session expired or invalid form token. Please try again.', 'error')
@@ -130,6 +130,12 @@ def edit_alias(id):
 def delete_alias(id):
     if 'user_id' not in session:
         return redirect(url_for('index'))
+
+    token = request.args.get('csrf_token', '')
+    stored = session.get('_csrf_token')
+    if not stored or not secrets.compare_digest(stored, token):
+        flash('Session expired or invalid form token. Please try again.', 'error')
+        return redirect(url_for('alias.dashboard'))
 
     try:
         alias = db_execute(

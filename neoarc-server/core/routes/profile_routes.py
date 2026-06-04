@@ -4,6 +4,7 @@ import sqlite3
 
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 
+import config
 from core.helpers import db_execute, db_commit, logger
 from core.validation import validate_email, validate_full_name, validate_image
 
@@ -33,7 +34,6 @@ def profile():
             flash('A valid email address is required.', 'error')
             return redirect(url_for('profile.profile'))
 
-        from flask import current_app
         file = request.files.get('profile_pic')
         img_err = validate_image(file) if file and file.filename else None
         if img_err:
@@ -45,8 +45,7 @@ def profile():
             if file and file.filename:
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 filename = f'user_{session["user_id"]}.{ext}'
-                upload_folder = current_app.config.get('UPLOAD_FOLDER', 'static/uploads')
-                file.save(os.path.join(upload_folder, filename))
+                file.save(os.path.join(config.UPLOAD_FOLDER, filename))
                 session['profile_pic'] = filename
                 db_execute(
                     'UPDATE users SET full_name=?, email=?, profile_pic=? WHERE id=?',

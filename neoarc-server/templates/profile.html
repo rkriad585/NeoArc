@@ -2,14 +2,14 @@
 {% block content %}
 <div class="max-w-4xl mx-auto mt-10">
     <div class="flex items-center gap-4 mb-8">
-        <div class="w-24 h-24 rounded-full border-2 border-nothingRed bg-black/50 overflow-hidden shadow-[0_0_20px_rgba(234,43,43,0.4)] flex items-center justify-center">
+        <div class="relative w-24 h-24 rounded-full border-2 border-nothingRed bg-black/50 overflow-hidden shadow-[0_0_20px_rgba(234,43,43,0.4)] flex items-center justify-center">
             {% if user.profile_pic %}
                 <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" class="w-full h-full object-cover">
             {% else %}
                 <svg class="w-10 h-10 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             {% endif %}
+            <div class="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
         </div>
-        <div class="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
         <div>
             <h2 class="font-display text-3xl text-white tracking-widest uppercase">{{ user.username }}</h2>
             <p class="font-mono text-xs text-gray-400">Manage Your Credentials..</p>

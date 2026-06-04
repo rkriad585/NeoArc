@@ -20,11 +20,14 @@ neoarc config http://localhost:59248
 | `neoarc config theme <name>` | Set active color theme |
 | `neoarc config theme list` | List all available themes |
 | `neoarc completion <shell>` | Generate shell completion script |
+| `neoarc update` | Self-update to the latest version |
+| `neoarc self-update` | Alias for update |
 | `neoarc version` | Show the installed version |
 | `neoarc help` | Show help |
 | `-v, --version` | Show the installed version |
 | `-h, --help` | Show this help menu |
 | `--config <path>` | Use a custom config file (before any command) |
+| `--proxy <url>, -p <url>` | Use proxy for self-update download (after update command) |
 
 ## Alias Commands
 
@@ -163,6 +166,11 @@ NeoArc can update itself to the latest published release:
 
 ```bash
 neoarc update
+# or
+neoarc self-update
+# with a proxy:
+neoarc update --proxy http://proxy:8080
+neoarc self-update -p http://proxy:8080
 ```
 
 This fetches the latest version from the repository's `.version` file, compares it

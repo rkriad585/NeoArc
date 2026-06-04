@@ -18,6 +18,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"neoarc/internal/config"
+	"neoarc/internal/version"
 )
 
 const (
@@ -32,6 +33,18 @@ var (
 	Commit     string
 	configPath string
 )
+
+func init() {
+	if version.Version == "" {
+		version.Version = Version
+	}
+	if version.Commit == "" {
+		version.Commit = Commit
+	}
+	if version.BuildTime == "" {
+		version.BuildTime = BuildTime
+	}
+}
 
 type Config struct {
 	ServerURL   string `toml:"server_url" json:"server_url"`
@@ -295,6 +308,9 @@ func FetchAlias(aliasName string) (*AliasResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 304 {
+		entry.Time = now
+		cache.Entries[aliasName] = entry
+		SaveCache(cache)
 		return &AliasResponse{
 			Success:  true,
 			Alias:    aliasName,
@@ -832,9 +848,26 @@ func resolveDownloadName() string {
 	return ""
 }
 
-func selfUpdate() int {
+type DownloadProgress struct {
+	Total uint64
+}
+
+func (dp *DownloadProgress) Write(p []byte) (int, error) {
+	n := len(p)
+	dp.Total += uint64(n)
+	fmt.Printf("\r  Downloaded: %.2f MB", float64(dp.Total)/1024/1024)
+	return n, nil
+}
+
+func selfUpdate(proxyURL string) int {
 	cfg := LoadConfig()
 	p := resolveTheme(cfg)
+
+	if proxyURL != "" {
+		fmt.Printf("  Using proxy: %s\n", proxyURL)
+		os.Setenv("HTTP_PROXY", proxyURL)
+		os.Setenv("HTTPS_PROXY", proxyURL)
+	}
 
 	fmt.Println(p.Primary.Sprint(">>> Checking for updates..."))
 
@@ -869,7 +902,7 @@ func selfUpdate() int {
 
 	url := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", RepoPath, latest, downloadName)
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Get(url)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: download failed: %v\n", err)
@@ -890,8 +923,11 @@ func selfUpdate() int {
 	}
 	tmpPath := tmpFile.Name()
 
-	written, err := io.Copy(tmpFile, resp.Body)
+	progress := &DownloadProgress{}
+	teeReader := io.TeeReader(resp.Body, progress)
+	written, err := io.Copy(tmpFile, teeReader)
 	tmpFile.Close()
+	fmt.Println()
 	if err != nil {
 		os.Remove(tmpPath)
 		fmt.Fprintf(os.Stderr, "Error: could not write update: %v\n", err)
@@ -903,7 +939,8 @@ func selfUpdate() int {
 		return 1
 	}
 
-	if runtime.GOOS != "windows" {
+	chmod := runtime.GOOS != "windows"
+	if chmod {
 		os.Chmod(tmpPath, 0755)
 	}
 
@@ -915,66 +952,31 @@ func selfUpdate() int {
 	}
 
 	if runtime.GOOS == "windows" {
-		return updateWindows(tmpPath, exePath)
-	}
-
-	if err := os.Rename(tmpPath, exePath); err != nil {
-		os.Remove(tmpPath)
-		fmt.Fprintf(os.Stderr, "Error: could not replace binary: %v\n", err)
-		return 1
-	}
-
-	fmt.Println(p.Success.Sprintf("OK   Updated to %s (%s)", latest, exePath))
-	return 0
-}
-
-func updateWindows(tmpPath, exePath string) int {
-	binDir := installDir()
-	binPath := filepath.Join(binDir, config.ProjectName+".exe")
-	os.MkdirAll(binDir, 0755)
-
-	src, _ := os.Open(tmpPath)
-	dst, _ := os.Create(binPath)
-	if src != nil && dst != nil {
-		io.Copy(dst, src)
-		dst.Close()
-		src.Close()
-		fmt.Printf("OK   Installed to %s\n", binPath)
+		oldPath := exePath + ".old"
+		os.Remove(oldPath)
+		if err := os.Rename(exePath, oldPath); err != nil {
+			os.Remove(tmpPath)
+			fmt.Fprintf(os.Stderr, "Error: could not backup current binary: %v\n", err)
+			return 1
+		}
+		if err := os.Rename(tmpPath, exePath); err != nil {
+			os.Rename(oldPath, exePath)
+			os.Remove(tmpPath)
+			fmt.Fprintf(os.Stderr, "Error: could not replace binary, restored original: %v\n", err)
+			return 1
+		}
+		fmt.Printf("OK   Updated to %s (%s)\n", p.Success.Sprint(latest), exePath)
+		fmt.Println("Note: you can safely delete " + oldPath + " after this session.")
 	} else {
-		if src != nil {
-			src.Close()
+		if err := os.Rename(tmpPath, exePath); err != nil {
+			os.Remove(tmpPath)
+			fmt.Fprintf(os.Stderr, "Error: could not replace binary: %v\n", err)
+			return 1
 		}
-		if dst != nil {
-			dst.Close()
-		}
+		os.Chmod(exePath, 0755)
+		fmt.Printf("OK   Updated to %s (%s)\n", p.Success.Sprint(latest), exePath)
 	}
 
-	batContent := fmt.Sprintf(`@echo off
-timeout /t 2 /nobreak >nul
-copy /y "%s" "%s" >nul 2>&1
-if errorlevel 1 (
-    echo ERR Failed to update binary
-) else (
-    echo OK   Binary updated successfully: %s
-)
-del /f /q "%s" 2>nul
-del /f /q "%%~f0"
-`, tmpPath, exePath, exePath, tmpPath)
-
-	batPath := filepath.Join(os.TempDir(), config.ProjectName+"-update.bat")
-	if err := os.WriteFile(batPath, []byte(batContent), 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not create update script: %v\n", err)
-		fmt.Printf("Update binary at: %s\n", tmpPath)
-		fmt.Printf("Manually copy: copy /y \"%s\" \"%s\"\n", tmpPath, exePath)
-		return 1
-	}
-
-	exec.Command("cmd", "/C", "start", "/B", batPath).Start()
-
-	fmt.Println("\nOK   Update applied. The new binary will replace the current one in 2 seconds.")
-	fmt.Println("     Restart your terminal to use the updated version.")
-
-	addToPath(binDir)
 	return 0
 }
 
@@ -992,7 +994,10 @@ func ShowHelp() {
   neoarc config insecure             : Enable insecure TLS (skip certificate verify)
   neoarc config secure               : Disable insecure TLS (default, verify certs)
   neoarc config theme <name>         : Set the active color theme ('list' for all)
+  neoarc config theme edit           : Open TUI theme picker
+  neoarc edit                        : Open TUI configuration editor
   neoarc update                      : Check for updates and self-update the binary
+  neoarc self-update                 : Alias for update
   neoarc version                     : Show the installed version
   neoarc help                        : Show this help menu
   neoarc completion <shell>          : Generate shell completion script (bash|zsh|powershell)
@@ -1003,6 +1008,7 @@ Flags:
   --install                          : Download and install NeoArc to ~/.config/neostore/neoarc/bin/
   --selfuninstall                    : Remove NeoArc config, cache, and binary from the system
   --config <path>                    : Use a custom config file path (before any command)
+  --proxy <url>, -p <url>            : Use proxy for self-update download (after update command)
   --dry-run                          : Print the alias code without executing
   --yes                              : Skip execution confirmation prompt
 
@@ -1055,21 +1061,30 @@ func Run(args []string) int {
 	case "-v", "--version", "version":
 		fmt.Println("NeoArc version", resolveVersion(RepoPath))
 		return 0
+	case "edit":
+		return editConfig()
 	}
 
 	if args[1] == "config" && len(args) >= 3 {
 		sub := args[2]
 		switch sub {
+		case "edit":
+			return editConfig()
 		case "theme":
+			if len(args) >= 4 && args[3] == "edit" {
+				return editTheme()
+			}
 			if len(args) < 4 {
 				fmt.Println("Usage: neoarc config theme <name>")
 				fmt.Println("       neoarc config theme list")
+				fmt.Println("       neoarc config theme edit")
 				return 0
 			}
 			opt := args[3]
 			if opt == "-h" || opt == "--help" {
 				fmt.Println("Usage: neoarc config theme <name>")
 				fmt.Println("       neoarc config theme list")
+				fmt.Println("       neoarc config theme edit")
 				return 0
 			}
 			if opt == "list" {
@@ -1111,6 +1126,7 @@ func Run(args []string) int {
 				fmt.Println("       neoarc config insecure")
 				fmt.Println("       neoarc config secure")
 				fmt.Println("       neoarc config theme <name>")
+				fmt.Println("       neoarc config edit")
 				return 0
 			}
 			if len(args) > 3 {
@@ -1154,8 +1170,15 @@ func Run(args []string) int {
 		return selfUninstall()
 	}
 
-	if args[1] == "update" {
-		return selfUpdate()
+	if args[1] == "update" || args[1] == "self-update" {
+		proxyURL := ""
+		for i := 2; i < len(args)-1; i++ {
+			if args[i] == "--proxy" || args[i] == "-p" {
+				proxyURL = args[i+1]
+				break
+			}
+		}
+		return selfUpdate(proxyURL)
 	}
 
 	if args[1] == "_list_aliases" {

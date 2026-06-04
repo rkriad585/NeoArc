@@ -65,31 +65,10 @@
 
 </div>
 
-<!-- Logic to initialize highlighting again for this view -->
+<!-- Re-initialize syntax highlighting for this view -->
 <script>
     $(document).ready(function() {
         hljs.highlightAll();
     });
-    
-    function copyCmd(text) {
-        // Reuse your bulletproof copy function here
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text).then(showToast);
-        } else {
-            let t = document.createElement("textarea");
-            t.value = text;
-            t.style.position="absolute"; t.style.left="-9999px";
-            document.body.prepend(t); t.select();
-            document.execCommand('copy');
-            t.remove();
-            showToast();
-        }
-    }
-    
-    function showToast() {
-        let alert = $('<div class="fixed bottom-10 right-10 bg-nothingRed text-white font-mono text-sm px-6 py-3 rounded-2xl shadow-lg z-50">COPIED TO CLIPBOARD</div>');
-        $('body').append(alert);
-        setTimeout(() => alert.fadeOut(function(){ $(this).remove() }), 2000);
-    }
 </script>
 {% endblock %}

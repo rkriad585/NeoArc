@@ -23,7 +23,10 @@ CLI_DIR="${SCRIPT_DIR}/neoarc-cli"
 LDFLAGS="-s -w \
 -X neoarc/internal/cli.Version=${VERSION} \
 -X neoarc/internal/cli.BuildTime=${BUILD_TIME} \
--X neoarc/internal/cli.Commit=${COMMIT}"
+-X neoarc/internal/cli.Commit=${COMMIT} \
+-X neoarc/internal/version.Version=${VERSION} \
+-X neoarc/internal/version.BuildTime=${BUILD_TIME} \
+-X neoarc/internal/version.Commit=${COMMIT}"
 
 PLATFORMS=(
     "windows/amd64"
