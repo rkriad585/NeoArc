@@ -1,114 +1,174 @@
-<#
-.SYNOPSIS
-  NeoArc Installer for Windows — downloads the latest release binary and installs globally.
-.DESCRIPTION
-  Detects the system architecture, downloads the correct NeoArc binary from GitHub,
-  stores it in ~\.config\neostore\ncoarc\bin\neoarc.exe, and adds that directory
-  to the user's PATH.
-  Use --selfuninstall to remove NeoArc from the system.
-.EXAMPLE
-  .\installer.ps1                # Install NeoArc
-  neoarc --selfuninstall  # Uninstall NeoArc
-#>
+# installer.ps1 - Installer and Uninstaller for NeoArc on Windows
+# Auto detects architecture, downloads the release binary, sets up PATH, and supports self-uninstallation.
 
-$ErrorActionPreference = "Stop"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$PROJECT_NAME = "neoarc"
-$REPO_OWNER   = "rkriad585"
-$REPO         = "$REPO_OWNER/$PROJECT_NAME"
-$INSTALL_DIR  = "$env:USERPROFILE\.config\neostore\$PROJECT_NAME\bin"
-$INSTALL_PATH = "$INSTALL_DIR\$PROJECT_NAME.exe"
+# ── Configuration ────────────────────────────────────────────────────────────
+$ProjectName    = "neoarc"
+$PublisherName  = "rkriad585"
+$GitHubRepo     = "rkriad585/NeoArc"
 
-function Write-Step   { param([string]$Message) Write-Host ">>> $Message" -ForegroundColor Cyan }
-function Write-Success { param([string]$Message) Write-Host "OK  $Message" -ForegroundColor Green }
-function Write-Error   { param([string]$Message) Write-Host "ERR $Message" -ForegroundColor Red; exit 1 }
+# Paths
+$ConfigDir      = Join-Path $env:USERPROFILE ".config\neostore\$ProjectName"
+$BinDir         = Join-Path $ConfigDir "bin"
+$BinaryPath     = Join-Path $BinDir "${ProjectName}.exe"
 
-# ---- Resolve version from GitHub raw .version file ----
-Write-Step "Resolving latest version..."
-try {
-    $ProgressPreference = "SilentlyContinue"
-    $v = (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/$REPO/main/.version" -UseBasicParsing).Content.Trim()
-    $Version = $v
-    Write-Success "Version: $Version"
-} catch {
-    Write-Error "Could not determine version from https://raw.githubusercontent.com/$REPO/main/.version"
+# ── Check for Uninstallation Flag ───────────────────────────────────────────
+$IsUninstall = $false
+if ($args -contains "--selfuninstall" -or $args -contains "-selfuninstall" -or $args -contains "--uninstall" -or $args -contains "-u") {
+    $IsUninstall = $true
 }
 
-# ---- Detect architecture using WMI ----
-Write-Step "Detecting system architecture..."
-$archCode = (Get-WmiObject Win32_Processor).Architecture
-switch ($archCode) {
-    0  { Write-Error "Unsupported architecture: x86 (32-bit)" }
-    5  { Write-Error "Unsupported architecture: ARM (32-bit)" }
-    6  { Write-Error "Unsupported architecture: IA64 (Itanium)" }
-    9  { $Binary = "$PROJECT_NAME-windows-amd64.exe"; Write-Success "Architecture: AMD64" }
-    12 { $Binary = "$PROJECT_NAME-windows-arm64.exe"; Write-Success "Architecture: ARM64" }
-    default { Write-Error "Unknown architecture code: $archCode" }
-}
+if ($IsUninstall) {
+    Write-Host ""
+    Write-Host "╔══════════════════════════════════════════════════╗" -ForegroundColor Yellow
+    Write-Host "║              NeoArc Uninstaller                  ║" -ForegroundColor Yellow
+    Write-Host "╚══════════════════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host ""
 
-$Url = "https://github.com/$REPO/releases/download/$Version/$Binary"
-
-# ---- Handle uninstall ----
-if ($args[0] -eq "--selfuninstall") {
-    Write-Step "Uninstalling $PROJECT_NAME..."
-    if (Test-Path $INSTALL_DIR) {
-        Remove-Item -Recurse -Force $INSTALL_DIR
-        Write-Success "Removed $INSTALL_DIR"
-    } else {
-        Write-Success "No install directory found."
+    # 1. Remove binary and directories
+    if (Test-Path $BinaryPath) {
+        Write-Host "  Removing binary: $BinaryPath ... " -NoNewline
+        Remove-Item $BinaryPath -Force
+        Write-Host "OK" -ForegroundColor Green
     }
 
-    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    if ($currentPath -like "*$INSTALL_DIR*") {
-        $newPath = ($currentPath -split ";" | Where-Object { $_ -ne $INSTALL_DIR }) -join ";"
-        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-        Write-Success "Removed $INSTALL_DIR from user PATH"
+    if (Test-Path $BinDir) {
+        Write-Host "  Removing bin directory: $BinDir ... " -NoNewline
+        Remove-Item $BinDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "OK" -ForegroundColor Green
+    }
+
+    if (Test-Path $ConfigDir) {
+        Write-Host "  Removing config directory: $ConfigDir ... " -NoNewline
+        Remove-Item $ConfigDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "OK" -ForegroundColor Green
+    }
+
+    # 2. Clean up PATH environment variable (User level)
+    Write-Host "  Updating User PATH environment variable ... " -NoNewline
+    $userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
+    if ($userPath) {
+        $pathEntries = $userPath -split ';'
+        $cleanEntries = $pathEntries | Where-Object { $_.Trim().TrimEnd('\') -ine $BinDir.TrimEnd('\') }
+        $newUserPath = $cleanEntries -join ';'
+
+        [Environment]::SetEnvironmentVariable("Path", $newUserPath, [EnvironmentVariableTarget]::User)
+        $env:PATH = ($env:PATH -split ';' | Where-Object { $_.Trim().TrimEnd('\') -ine $BinDir.TrimEnd('\') }) -join ';'
+        Write-Host "OK" -ForegroundColor Green
     } else {
-        Write-Success "Install directory not in PATH."
+        Write-Host "Skipped (PATH empty)" -ForegroundColor Yellow
     }
 
     Write-Host ""
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host "  $PROJECT_NAME has been uninstalled." -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
+    Write-Host "  NeoArc has been successfully uninstalled from your system." -ForegroundColor Green
+    Write-Host "  Please restart any open terminal windows to apply the changes." -ForegroundColor Cyan
+    Write-Host ""
     exit 0
 }
 
-# ---- Create install directory ----
-Write-Step "Creating install directory: $INSTALL_DIR"
-New-Item -ItemType Directory -Path $INSTALL_DIR -Force | Out-Null
-Write-Success "Directory ready."
-
-# ---- Download binary ----
-Write-Step "Downloading $Binary from $Url"
-try {
-    $ProgressPreference = "SilentlyContinue"
-    Invoke-WebRequest -Uri $Url -OutFile $INSTALL_PATH -UseBasicParsing
-    Write-Success "Downloaded to $INSTALL_PATH"
-} catch {
-    Write-Error "Download failed: $_"
-}
-
-if (-not (Test-Path $INSTALL_PATH)) {
-    Write-Error "Binary not found after download."
-}
-
-# ---- Add to PATH ----
-$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($currentPath -notlike "*$INSTALL_DIR*") {
-    Write-Step "Adding $INSTALL_DIR to user PATH"
-    [Environment]::SetEnvironmentVariable("Path", "$currentPath;$INSTALL_DIR", "User")
-    Write-Success "PATH updated (restart your terminal for changes to take effect)."
-} else {
-    Write-Success "$INSTALL_DIR already in PATH."
-}
-
+# ── Installation / Update Flow ───────────────────────────────────────────────
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "  $PROJECT_NAME installed successfully!" -ForegroundColor Green
-Write-Host "  Binary : $INSTALL_PATH" -ForegroundColor Gray
-Write-Host "  Version: $Version" -ForegroundColor Gray
-Write-Host "  Usage  : $PROJECT_NAME help" -ForegroundColor Gray
-Write-Host "  To uninstall, run:" -ForegroundColor Gray
-Write-Host "    neoarc --selfuninstall" -ForegroundColor Gray
-Write-Host "========================================" -ForegroundColor Green
+Write-Host "╔══════════════════════════════════════════════════╗" -ForegroundColor Cyan
+Write-Host "║               NeoArc Installer                   ║" -ForegroundColor Cyan
+Write-Host "╚══════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host ""
+
+# 1. Resolve Version from GitHub
+Write-Host "  Checking latest version from GitHub ... " -NoNewline
+$versionUrl = "https://raw.githubusercontent.com/${GitHubRepo}/main/.version"
+try {
+    $version = (Invoke-RestMethod -Uri $versionUrl -UseBasicParsing).Trim()
+    Write-Host "$version" -ForegroundColor Green
+} catch {
+    Write-Host "FAILED" -ForegroundColor Red
+    Write-Error "Could not fetch version from GitHub. Please check your internet connection."
+    exit 1
+}
+
+# 2. Detect System Architecture (Win32_Processor mapping)
+Write-Host "  Detecting system architecture ... " -NoNewline
+$procArch = $null
+try {
+    $procArch = (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1).Architecture
+} catch {
+    try {
+        $procArch = (Get-WmiObject Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1).Architecture
+    } catch {}
+}
+
+if ($null -eq $procArch) {
+    if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64" -or $env:PROCESSOR_ARCHITEW6432 -eq "AMD64") {
+        $arch = "amd64"
+    } elseif ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
+        $arch = "arm64"
+    } else {
+        $arch = "amd64"
+    }
+} else {
+    switch ($procArch) {
+        9  { $arch = "amd64" }
+        12 { $arch = "arm64" }
+        default { $arch = "amd64" }
+    }
+}
+Write-Host "windows-$arch" -ForegroundColor Green
+
+# 3. Download the Release Binary
+$downloadUrl = "https://github.com/${GitHubRepo}/releases/download/${version}/${ProjectName}-windows-${arch}.exe"
+Write-Host "  Downloading binary from $downloadUrl ...`n"
+
+if (-not (Test-Path $BinDir)) {
+    New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
+}
+
+try {
+    $oldProgressPreference = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $BinaryPath -UseBasicParsing
+    $ProgressPreference = $oldProgressPreference
+    $size = [math]::Round((Get-Item $BinaryPath).Length / 1MB, 2)
+    Write-Host "  Successfully downloaded neoarc.exe (${size} MB)" -ForegroundColor Green
+} catch {
+    $ProgressPreference = $oldProgressPreference
+    Write-Host "  Failed to download binary." -ForegroundColor Red
+    Write-Error "Please ensure a release exists for version $version."
+    exit 1
+}
+
+# 4. Update PATH Environment Variable
+Write-Host "  Configuring PATH environment variable ... " -NoNewline
+$userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
+$pathEntries = if ($userPath) { $userPath -split ';' } else { @() }
+
+$binDirNormalized = $BinDir.TrimEnd('\')
+$alreadyInPath = $false
+foreach ($entry in $pathEntries) {
+    if ($entry.Trim().TrimEnd('\') -ieq $binDirNormalized) {
+        $alreadyInPath = $true
+        break
+    }
+}
+
+if (-not $alreadyInPath) {
+    $newPathEntries = $pathEntries + $BinDir
+    $newUserPath = $newPathEntries -join ';'
+    [Environment]::SetEnvironmentVariable("Path", $newUserPath, [EnvironmentVariableTarget]::User)
+    $env:PATH = $env:PATH + ";" + $BinDir
+    Write-Host "Added to PATH" -ForegroundColor Green
+} else {
+    Write-Host "Already in PATH" -ForegroundColor Yellow
+}
+
+# ── Success Banner ────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "╔══════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║         NeoArc successfully installed!           ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Installation Path: $BinaryPath" -ForegroundColor Cyan
+Write-Host "  Version          : $version" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Please RESTART your terminal/PowerShell window to start using NeoArc." -ForegroundColor Yellow
+Write-Host "  You can then run: neoarc --help" -ForegroundColor Yellow
+Write-Host ""

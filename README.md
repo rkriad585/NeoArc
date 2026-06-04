@@ -440,6 +440,12 @@ The workflow will:
 5. Publish a GitHub Release with all assets
 6. Send a failure notification if any step fails
 
+> **Security note:** The release workflow only injects public metadata (`Version`, `Commit`, `PublisherName`, `PublisherEmail`). The `NEOARC_API_TOKEN` is **not** baked into release binaries — doing so would leak the server's API secret to every downloader. Each user must set their own token at runtime:
+> ```bash
+> neoarc config-token <your-token>
+> ```
+> This saves the token locally to `~/.config/neostore/neoarc/config.toml`. The local `build.sh`/`build.ps1` scripts can optionally auto-inject the token for private/internal builds by reading `neoarc-server/.env`.
+>
 > **Note:** The workflow also supports manual trigger via the GitHub Actions UI (`workflow_dispatch`).
 
 ---
@@ -495,21 +501,52 @@ curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh 
 
 **Windows (PowerShell):**
 ```powershell
+# PowerShell 5+ (recommended)
+irm https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1 | iex
+
+# Legacy fallback
 iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1'))
 ```
 
-The binary is installed to `~/.config/neostore/neoarc/bin/neoarc` and the directory is added to your PATH.
+### What the installer does
+
+1. Fetches the latest version from the repository's `.version` file
+2. Auto-detects your OS and CPU architecture
+3. Downloads the correct pre-built binary from GitHub Releases
+4. Installs it to `~/.config/neostore/neoarc/bin/neoarc` (or `.exe` on Windows)
+5. Adds that directory to your `PATH` so `neoarc` is available globally
+
+### Supported platforms
+
+| OS | Architectures |
+|----|--------------|
+| Windows | AMD64, ARM64 |
+| Linux | AMD64, ARM64 |
+| macOS | AMD64 (Intel), ARM64 (Apple Silicon) |
 
 ### Uninstall
 
+Use any of these methods (they all do the same thing):
+
 ```bash
-# Using the installer script
+# Via installer script (local copy)
 ./installer.sh --selfuninstall          # Linux / macOS
 .\installer.ps1 --selfuninstall         # Windows
 
-# Or using the CLI itself (if still accessible)
+# Via installer script (one-liner, no download needed)
+curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh | sh -s -- --selfuninstall       # Linux / macOS
+irm https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1 | iex "-" "--selfuninstall"            # Windows PowerShell
+
+# Via CLI itself (if still accessible)
 neoarc --selfuninstall
 ```
+
+Short aliases: `-u`, `--uninstall`, `-selfuninstall` also work.
+
+**What uninstall removes:**
+- The NeoArc binary (`~/.config/neostore/neoarc/bin/neoarc`)
+- All config, cache, and trust data (`~/.config/neostore/neoarc/`)
+- PATH entries from shell profiles (Unix) or User environment variables (Windows)
 
 ---
 

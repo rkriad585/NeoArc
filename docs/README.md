@@ -179,16 +179,38 @@ Build the binary from the repo root:
 
 Both scripts cross-compile for 6 platforms (Windows amd64/arm64, macOS amd64/arm64, Linux amd64/arm64), injection version (from `.version`), commit hash, and build time via ldflags. Output is placed in `./bin/`.
 
-Alternatively, install the CLI binary directly:
+### One-Line Install (recommended)
+
+Download and install the latest pre-built binary without any toolchain:
+
+**Unix (Linux / macOS):**
 ```bash
-# One-line install
 curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh | sh
 ```
 
-Or build manually:
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1 | iex
+```
+
+The installer auto-detects your OS and architecture, downloads the correct binary from GitHub Releases, and adds it to your PATH.
+
+### Manual Build
+
 ```bash
 cd neoarc-cli
 go build -o neoarc ./cmd/neoarc
+```
+
+### Uninstall
+
+```bash
+# Via installer script
+./installer.sh --selfuninstall          # Linux / macOS
+.\installer.ps1 --selfuninstall         # Windows
+
+# Via CLI itself
+neoarc --selfuninstall
 ```
 
 ---

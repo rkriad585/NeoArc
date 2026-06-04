@@ -118,18 +118,52 @@ curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh 
 
 **Windows (PowerShell):**
 ```powershell
+# PowerShell 5+ (recommended)
+irm https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1 | iex
+
+# Legacy fallback
 iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1'))
 ```
 
-Installs the binary to `~/.config/neostore/neoarc/bin/neoarc` and adds it to your PATH.
+### What the installer does
+
+1. Fetches the latest version from `https://raw.githubusercontent.com/rkriad585/NeoArc/main/.version`
+2. Detects your OS and CPU architecture (AMD64 / ARM64)
+3. Downloads the correct pre-built binary from GitHub Releases
+4. Installs it to `~/.config/neostore/neoarc/bin/neoarc` (`.exe` on Windows)
+5. Adds that directory to your `PATH` (shell profile on Unix, User env var on Windows)
+
+### Supported Platforms
+
+| OS | Architectures |
+|----|--------------|
+| Windows | AMD64, ARM64 |
+| Linux | AMD64, ARM64 |
+| macOS | AMD64 (Intel), ARM64 (Apple Silicon) |
 
 ## Uninstall
 
+All of these methods produce the same result:
+
 ```bash
-./installer.sh --selfuninstall          # Unix
+# Via installer script (local copy)
+./installer.sh --selfuninstall          # Linux / macOS
 .\installer.ps1 --selfuninstall         # Windows
-neoarc --selfuninstall                  # CLI (if accessible)
+
+# Via installer script (one-liner, no download needed)
+curl -fsSL https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.sh | sh -s -- --selfuninstall       # Linux / macOS
+irm https://raw.githubusercontent.com/rkriad585/NeoArc/main/installer.ps1 | iex "-" "--selfuninstall"            # Windows PowerShell
+
+# Via CLI itself (if still accessible)
+neoarc --selfuninstall
 ```
+
+Also accepted: `-u`, `--uninstall`, `-selfuninstall`.
+
+**What gets removed:**
+- The binary (`~/.config/neostore/neoarc/bin/neoarc`)
+- All config, cache, and trust data (`~/.config/neostore/neoarc/`)
+- PATH entries from shell profiles (Unix) or Registry (Windows)
 
 ## Next Steps
 
