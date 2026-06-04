@@ -184,19 +184,19 @@ To trigger an automated build and release:
 
 1. Update `.version` with the new version number:
    ```bash
-   echo "v3.0.4" > .version
+   echo "v1.5.0" > .version
    ```
 
 2. Commit and push:
    ```bash
    git add .version
-   git commit -m "Release v3.0.4"
+   git commit -m "Release v1.5.0"
    git push
    ```
 
 3. Tag and push:
    ```bash
-   git tag v3.0.4
+   git tag v1.5.0
    git push --tags
    ```
 

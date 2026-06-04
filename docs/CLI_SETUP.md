@@ -14,7 +14,7 @@ This guide covers building and installing the NeoArc CLI client from source.
 The recommended approach is to push a version tag and let GitHub Actions build all binaries:
 
 ```bash
-git tag v3.0.3
+git tag v1.5.0
 git push --tags
 ```
 

@@ -66,7 +66,7 @@ NEOARC/
 |   +-- go.mod / go.sum
 |
 +-- .github/workflows/release.yml  # Auto Build & Release pipeline
-+-- .version                        # Version file (v3.0.3)
++-- .version                        # Version file (v1.5.0)
 +-- build.ps1 / build.sh            # Local cross-compile scripts
 +-- installer.ps1 / installer.sh    # One-line installers
 +-- neoarc-server/                  # Python Flask Server
@@ -102,7 +102,7 @@ NEOARC/
 
 NeoArc includes a **GitHub Actions release pipeline** that automatically builds, signs, and publishes binaries when a version tag is pushed:
 
-- **Trigger:** Push a tag matching `v*` (e.g., `git tag v3.0.3 && git push --tags`)
+- **Trigger:** Push a tag matching `v*` (e.g., `git tag v1.5.0 && git push --tags`)
 - **Build Matrix:** 6 platforms — Windows (amd64/arm64), Linux (amd64/arm64), macOS (amd64/arm64)
 - **Metadata Injection:** Version, commit SHA, publisher name and email are embedded into each binary via Go linker flags
 - **Changelog:** Auto-generated from commit history grouped by feat/fix/perf/docs
