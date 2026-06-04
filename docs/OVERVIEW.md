@@ -36,6 +36,7 @@ NeoArc is an innovative, cross-platform Command Obfuscation and Alias Execution 
 - **Argument Passing:** Arguments after the alias name are forwarded to the executed script (`$1`, `$args[0]`, `sys.argv[1]`, etc.).
 - **Shell Tab Completion:** `neoarc completion bash|zsh|powershell` generates completions for subcommands, flags, and alias names.
 - **Color Themes:** 13 built-in themes switchable at runtime via `neoarc config theme <name>`.
+- **TUI Config Editor:** Interactive terminal UI for configuring server URL, API token, TLS settings, and theme via `neoarc edit` or `neoarc config edit`.
 
 ## Technology Stack
 
@@ -64,9 +65,10 @@ NEOARC/
 |   |   +-- integration_test.go
 |   +-- go.mod / go.sum
 |
-+-- .version
-+-- build.ps1 / build.sh
-+-- installer.ps1 / installer.sh
++-- .github/workflows/release.yml  # Auto Build & Release pipeline
++-- .version                        # Version file (v3.0.3)
++-- build.ps1 / build.sh            # Local cross-compile scripts
++-- installer.ps1 / installer.sh    # One-line installers
 +-- neoarc-server/                  # Python Flask Server
 |   +-- core/
 |   |   +-- admin.py                # Super admin logic
@@ -95,5 +97,18 @@ NEOARC/
 +-- static/
 +-- README.md
 ```
+
+## Release Automation
+
+NeoArc includes a **GitHub Actions release pipeline** that automatically builds, signs, and publishes binaries when a version tag is pushed:
+
+- **Trigger:** Push a tag matching `v*` (e.g., `git tag v3.0.3 && git push --tags`)
+- **Build Matrix:** 6 platforms — Windows (amd64/arm64), Linux (amd64/arm64), macOS (amd64/arm64)
+- **Metadata Injection:** Version, commit SHA, publisher name and email are embedded into each binary via Go linker flags
+- **Changelog:** Auto-generated from commit history grouped by feat/fix/perf/docs
+- **Release:** Published to GitHub Releases with SHA-256 checksums
+- **Failure Notification:** Dedicated job sends alerts if any build step fails
+
+See the [Release Workflow](../README.md#release-workflow-automated) section in the main README for usage instructions.
 
 Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan

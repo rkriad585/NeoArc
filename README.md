@@ -6,6 +6,7 @@
 ![Python](https://img.shields.io/badge/Server-Python_Flask-black?style=for-the-badge&logo=python) 
 ![Go](https://img.shields.io/badge/Client-Golang-00ADD8?style=for-the-badge&logo=go) 
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+[![Auto Build & Release](https://github.com/rkriad585/NeoArc/actions/workflows/release.yml/badge.svg)](https://github.com/rkriad585/NeoArc/actions/workflows/release.yml)
 
 **Cross-Platform Command Obfuscation & Alias Execution System**
 
@@ -36,7 +37,7 @@ Aliases are created and managed via the web dashboard, stored in a SQLite databa
 | Category | Details |
 |---|---|
 | **Web Dashboard** | Create, edit, delete, search, and view aliases. Cyber-themed dark UI with Tailwind CSS |
-| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`, `neoarc update`, `--config` flag. Supports bash, PowerShell, cmd, Python, and Go exec types |
+| **CLI Client** | `neoarc get`, `neoarc run`, `neoarc config`, `neoarc config-token`, `neoarc edit` (TUI form), `neoarc update`, `--config` flag. 13 color themes. Supports bash, PowerShell, cmd, Python, and Go exec types |
 | **Authentication** | Session-based auth with CSRF protection. Rate-limited login (5/min) and registration (3/5min) |
 | **API Security** | Bearer token authentication, rate-limited (60/min per IP), ETag caching with 304 responses |
 | **Admin Panel** | User management — view, block/unblock, delete users. Configurable admin route prefix |
@@ -66,6 +67,9 @@ NeoArc/
 ├── installer.sh                # One-line Unix installer
 ├── docker-compose.yml          # Production Docker stack
 │
+├── .github/workflows/          # GitHub Actions automation
+│   └── release.yml             # Auto Build & Release pipeline
+│
 ├── neoarc-server/              # Flask web application
 │   ├── core/
 │   │   ├── routes/             # Blueprint modules
@@ -91,7 +95,7 @@ NeoArc/
 │   ├── pyproject.toml          # Python package metadata
 │   └── Dockerfile              # Multi-stage Alpine build
 ├── neoarc-cli/                 # Go CLI client
-│   ├── cmd/neoarc/main.go      # Entry point
+│   ├── cmd/neoarc/main.go      # Entry point (version vars injected via ldflags)
 │   ├── internal/
 │   │   ├── cli/
 │   │   │   ├── cli.go              # Core logic (fetch, execute, config, cache, trust, update)
@@ -241,6 +245,30 @@ insecure_tls = false
 theme = "vibrant_color_fiesta"
 ```
 
+### TUI Theme Picker
+
+Open an interactive theme selector:
+
+```bash
+neoarc config theme edit
+```
+
+### TUI Config Editor
+
+Open an interactive form to edit all config settings at once:
+
+```bash
+neoarc edit
+# or
+neoarc config edit
+```
+
+The editor shows a banner at startup and provides input fields for:
+- Server URL
+- API Token
+- Insecure TLS toggle
+- Theme selector (with preview)
+
 ### Examples
 
 ```bash
@@ -250,8 +278,11 @@ neoarc config theme list
 # Switch to dark theme
 neoarc config theme dark
 
-# Switch to a colorful theme
-neoarc config theme vibrant_color_fiesta
+# Switch via interactive picker
+neoarc config theme edit
+
+# Edit all config via TUI
+neoarc edit
 ```
 
 ## Server Configuration Reference
@@ -300,7 +331,20 @@ python wsgi.py
 
 ### CLI
 
-The CLI includes build scripts for cross-compiling to all platforms.
+#### Automated (Recommended)
+
+Push a tag and let GitHub Actions build all 6 platform binaries automatically:
+
+```bash
+git tag v3.0.3
+git push --tags
+```
+
+See the [Release Workflow](#release-workflow-automated) section above for details.
+
+#### Local Build Scripts
+
+The repository includes build scripts for cross-compiling locally:
 
 **Unix:**
 ```bash
@@ -319,13 +363,84 @@ Both scripts:
 - Inject version (from `.version` file), commit hash, and build time via linker flags
 - Output binaries to `./bin/`
 
-Manual single-platform build (version from .version, or leave empty for GitHub fallback):
+#### Manual Single-Platform Build
 
 ```bash
 VERSION="v$(cat .version | tr -d '[:space:]')"
 cd neoarc-cli
 go build -ldflags="-s -w -X neoarc/internal/cli.Version=$VERSION" -o neoarc ./cmd/neoarc
 ```
+
+---
+
+## Release Workflow (Automated)
+
+NeoArc includes a **GitHub Actions release workflow** (`.github/workflows/release.yml`) that automatically builds and publishes binaries whenever you push a tag.
+
+### How It Works
+
+```text
+prepare ──────────────────────────────────────────────┐
+   └─ fetches .version from GitHub raw URL            │
+   └─ extracts commit SHA + pre-release flag          │
+                                                      ▼
+build (6 parallel) ──────────────────────────────► release ──► notify-on-failure
+   windows/amd64                                      ▲
+   windows/arm64                                      │
+   linux/amd64                                        │
+   linux/arm64    (cross-compiled w/ aarch64-gcc)     │
+   darwin/amd64   (macos-latest Intel runner)         │
+   darwin/arm64   (macos-latest M2 native runner)     │
+                                                      │
+changelog ────────────────────────────────────────────┘
+   └─ groups commits: feat / fix / perf / docs / other
+```
+
+### Binary Output Names
+
+| Platform | Architecture | File |
+|----------|-------------|------|
+| Windows | AMD64 | `neoarc-windows-amd64.exe` |
+| Windows | ARM64 | `neoarc-windows-arm64.exe` |
+| Linux | AMD64 | `neoarc-linux-amd64` |
+| Linux | ARM64 | `neoarc-linux-arm64` |
+| macOS | AMD64 (Intel) | `neoarc-darwin-amd64` |
+| macOS | ARM64 (Apple Silicon) | `neoarc-darwin-arm64` |
+
+### Metadata Injected at Build Time
+
+| Variable | Source |
+|----------|--------|
+| `main.Version` | `.version` file (e.g. `v3.0.3`) |
+| `main.Commit` | Short git SHA (8 chars) |
+| `main.PublisherName` | `rkriad585` |
+| `main.PublisherEmail` | `rkriad585@gmail.com` |
+
+### How to Publish a Release
+
+```bash
+# 1. Update .version file
+echo "v3.0.4" > .version
+
+# 2. Commit and push
+git add .version
+git commit -m "Release v3.0.4"
+git push
+
+# 3. Tag and push
+git tag v3.0.4
+git push --tags
+```
+
+The workflow will:
+1. Read the version from `.version` (with fallback to the tag itself)
+2. Cross-compile for all 6 platforms in parallel
+3. Generate SHA-256 checksums
+4. Build a changelog from commit history (grouped by feat/fix/perf/docs)
+5. Publish a GitHub Release with all assets
+6. Send a failure notification if any step fails
+
+> **Note:** The workflow also supports manual trigger via the GitHub Actions UI (`workflow_dispatch`).
 
 ---
 
@@ -409,6 +524,7 @@ neoarc config-token <tok>          — Set API token
 neoarc config insecure             — Skip TLS certificate verification
 neoarc config secure               — Re-enable TLS verification
 neoarc config theme <name>         — Set color theme (use 'list' for all)
+neoarc edit                        — Open TUI configuration editor
 neoarc version                     — Show the installed version
 neoarc help                        — Show help
 neoarc completion <shell>          — Generate shell completion (bash|zsh|powershell)

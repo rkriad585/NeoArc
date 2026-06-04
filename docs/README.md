@@ -32,6 +32,7 @@ Featuring a premium **"Liquid Glass" / "Nothing OS" UI**, NeoArc offers a cyberp
 - **Tab Completion:** `neoarc completion bash|zsh|powershell` generates shell-specific completions for commands, flags, and alias names
 - **Stealth/Speed:** written in Go for high performance and single-binary deployment.
 - **Themes:** 13 built-in color themes with runtime switching via `neoarc config theme <name>`.
+- **TUI Editor:** `neoarc edit` opens an interactive configuration form
 
 ---
 
@@ -52,10 +53,15 @@ NEOARC/
 |   |   +-- cli/
 |   |   |   +-- cli.go              # CLI Logic (config, cache, trust store, execution, update)
 |   |   |   +-- completion.go       # Shell completion generators (bash/zsh/powershell)
+|   |   |   +-- form.go             # Interactive TUI configuration editor
 |   |   |   +-- cli_test.go         # CLI unit tests (40+)
 |   |   +-- config/
-|   |       +-- config.go           # Cross-platform config directory helpers (TOML)
-|   |       +-- theme.go            # Built-in color themes (13 themes)
+|   |   |   +-- config.go           # Cross-platform config directory helpers (TOML)
+|   |   |   +-- theme.go            # Built-in color themes (13 themes)
+|   |   +-- banner/
+|   |   |   +-- banner.go           # Startup banner display
+|   |   +-- version/
+|   |   |   +-- version.go          # Version info helpers
 |   +-- tests/integration_test.go   # Integration tests
 |   +-- go.mod / go.sum
 |

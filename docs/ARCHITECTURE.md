@@ -90,6 +90,8 @@ The server acts as the central hub for alias management, user authentication, an
 The CLI tool is a lightweight, cross-platform binary responsible for fetching and executing aliases.
 
 - **Configuration:** Stores the NeoArc server URL, API token, TLS settings, and theme preference in `config.toml` (located at `~/.config/neostore/neoarc/config.toml` on all platforms). The theme system (`internal/config/theme.go`) provides 13 built-in color themes applied to help output, update messages, and confirmation prompts. Legacy JSON configs from old paths are auto-migrated on first run.
+- **TUI Configuration Editor:** `internal/cli/form.go` implements an interactive terminal UI for editing configuration fields (server URL, API token, insecure TLS toggle, theme selector). It can be invoked via `neoarc edit` or `neoarc config edit`, and displays a startup banner (`internal/banner/banner.go`) alongside version info (`internal/version/version.go`). The theme picker can be opened standalone with `neoarc config theme edit`.
+- **Banner & Version:** `internal/banner/banner.go` renders a startup banner on TUI launch and help output. `internal/version/version.go` provides version helpers populated at build time via ldflags.
 - **Client-Side Alias Cache:** Fetched alias responses are cached in `alias_cache.json` with a 30-second TTL. Cache hits within the TTL skip the HTTP request entirely.
 - **ETag Conditional Requests:** The CLI stores the server's `ETag` header per alias. On subsequent fetches, it sends `If-None-Match`. A `304 Not Modified` response causes the CLI to reuse the cached entry.
 - **Trust Store (TOFU):** The first time an alias is executed, the CLI prompts `Execute alias '<name>'? This will run code from the remote server. [y/N]:`. On approval, the alias name is stored in `trusted.json` with a Unix timestamp. Approved aliases skip the prompt on future runs.
@@ -132,5 +134,46 @@ A local SQLite database (`neoarc.db`) is used by the Flask server to store all a
 6.  **CLI executes command:** The CLI tool creates a temporary script file with the command and executes it using the appropriate local interpreter.
 
 This architecture ensures a clear separation of concerns, with the server handling data management, security enforcement, and caching, while the client focuses solely on secure, efficient remote execution.
+
+## CI/CD Pipeline
+
+NeoArc uses a **GitHub Actions release workflow** (`.github/workflows/release.yml`) for automated builds:
+
+### Pipeline Stages
+
+1. **Prepare** — Fetches the version from `.version` (with remote and tag fallbacks), extracts the commit SHA, and determines if the release is a pre-release.
+
+2. **Build (6 parallel jobs)** — Cross-compiles the Go CLI for all target platforms simultaneously:
+   - `windows/amd64` and `windows/arm64` on `windows-latest`
+   - `linux/amd64` and `linux/arm64` (cross-compiled via `aarch64-linux-gnu-gcc`) on `ubuntu-latest`
+   - `darwin/amd64` (Intel) and `darwin/arm64` (Apple Silicon native) on `macos-latest`
+
+   Each binary has metadata injected via linker flags (`-X`):
+   - `main.Version` — from `.version`
+   - `main.Commit` — short SHA
+   - `main.PublisherName` and `main.PublisherEmail` — publisher identity
+
+3. **Changelog** — Groups git commits by conventional commit type: `feat`, `fix`, `perf`, `docs`, and other.
+
+4. **Release** — Downloads all build artifacts (binary + `.sha256`), creates a GitHub Release with a formatted body, and attaches all assets.
+
+5. **Notify-on-Failure** — Only runs if any preceding job fails; writes a failure summary.
+
+### Triggering a Release
+
+```bash
+git tag v3.0.3     # or any v* tag
+git push --tags    # triggers the pipeline
+```
+
+The workflow can also be triggered manually from the GitHub Actions UI.
+
+### Binary Naming Convention
+
+```
+{project}-{goos}-{goarch}[.exe]
+```
+
+Examples: `neoarc-windows-amd64.exe`, `neoarc-linux-arm64`, `neoarc-darwin-amd64`
 
 Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan

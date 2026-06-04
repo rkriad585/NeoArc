@@ -39,3 +39,13 @@
 .gitignore text
 .gitattributes text
 .dockerignore text
+
+# Version file
+.version text
+
+# Go module files
+go.sum text
+go.work text
+
+# GitHub Actions workflows
+.github/** text

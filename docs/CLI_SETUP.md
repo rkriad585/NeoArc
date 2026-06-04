@@ -9,6 +9,23 @@ This guide covers building and installing the NeoArc CLI client from source.
 
 ## Build
 
+### Automated (GitHub Actions)
+
+The recommended approach is to push a version tag and let GitHub Actions build all binaries:
+
+```bash
+git tag v3.0.3
+git push --tags
+```
+
+This triggers the `.github/workflows/release.yml` pipeline which:
+- Cross-compiles for 6 platforms in parallel
+- Injects version, commit, publisher metadata via ldflags
+- Generates SHA-256 checksums
+- Publishes a GitHub Release with auto-generated changelog
+
+### Local Build Scripts
+
 Run the platform-specific build script from the **repo root**.
 
 ### Windows (PowerShell)
@@ -28,15 +45,16 @@ Both scripts cross-compile for 6 platforms (Windows amd64/arm64, macOS amd64/arm
 
 ## Output
 
-Build artifacts are placed in `./bin/`:
+**Local build** artifacts are placed in `./bin/`. **Release builds** (via GitHub Actions) use the same naming convention:
 
-| Platform       | Binary name                    |
-|----------------|--------------------------------|
-| Windows x86_64 | `neoarc-windows-amd64.exe`     |
-| macOS x86_64   | `neoarc-darwin-amd64`          |
-| macOS ARM64    | `neoarc-darwin-arm64`          |
-| Linux x86_64   | `neoarc-linux-amd64`           |
-| Linux ARM64    | `neoarc-linux-arm64`           |
+| Platform       | Architecture | Binary name                    |
+|----------------|-------------|--------------------------------|
+| Windows        | AMD64       | `neoarc-windows-amd64.exe`     |
+| Windows        | ARM64       | `neoarc-windows-arm64.exe`     |
+| macOS (Intel)  | AMD64       | `neoarc-darwin-amd64`          |
+| macOS (Silicon)| ARM64       | `neoarc-darwin-arm64`          |
+| Linux          | AMD64       | `neoarc-linux-amd64`           |
+| Linux          | ARM64       | `neoarc-linux-arm64`           |
 
 ## Compile-time API Token
 
@@ -64,13 +82,21 @@ If no config file exists, the CLI creates one with a default server URL of `http
 
 The config file also supports a `theme` field — see [Theme Configuration](USAGE_GUIDE.md#theme-configuration) for details.
 
+Use the interactive TUI editor to configure settings with a guided form:
+```bash
+neoarc edit
+neoarc config edit
+```
+
 Available config commands:
 ```bash
 neoarc config <server-url>
 neoarc config insecure
 neoarc config secure
 neoarc config theme <name>
+neoarc config theme edit
 neoarc config-token <token>
+neoarc edit
 neoarc --config /path/to/config.toml run my-alias
 ```
 
