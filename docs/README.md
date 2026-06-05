@@ -41,7 +41,7 @@ Featuring a premium **"Liquid Glass" / "Nothing OS" UI**, NeoArc offers a cyberp
 ```text
 NEOARC/
 |
-+-- .version                        # Version file (v1.5.1)
++-- .version                        # Version file (v1.5.0)
 +-- build.ps1                       # Root-level Windows Build Script
 +-- build.sh                        # Root-level Unix Build Script
 +-- installer.ps1                   # One-line Windows installer
@@ -379,7 +379,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  <span style="font-family: monospace;">NEOARC v1.5.1</span>
+  <span style="font-family: monospace;">NEOARC v1.5.0</span>
 </p>
 
 Written by [Neorwc](https://github.com/rkriad585/neorwc-cli), Created by RK Riad Khan

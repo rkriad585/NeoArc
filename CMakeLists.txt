@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(neoarc
-  VERSION 1.5.1
+  VERSION 1.5.0
   DESCRIPTION "Cross-Platform Command Obfuscation & Alias Execution System"
   LANGUAGES NONE
 )

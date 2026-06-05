@@ -2,8 +2,8 @@
 #  AUTO BUILD & RELEASE WORKFLOW
 # ================================================================
 #  HOW TO USE:
-#    1. Make sure your repo root has a `.version` file, e.g:  v1.5.1
-#    2. Push a tag:  git tag v1.5.1 && git push --tags
+#    1. Make sure your repo root has a `.version` file, e.g:  v1.5.0
+#    2. Push a tag:  git tag v1.5.0 && git push --tags
 #
 #  BINARY OUTPUT NAMES:
 #    neoarc-windows-amd64.exe    (Windows AMD64)
