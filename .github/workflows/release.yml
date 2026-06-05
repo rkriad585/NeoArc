@@ -206,7 +206,7 @@ jobs:
           echo " Commit : ${COMMIT}"
           echo "-------------------------------------------"
 
-          cd neoarc-cli && go build -trimpath -ldflags "${LDFLAGS}" -o "../${OUTFILE}" ./cmd/neoarc/
+          cd neoarc-cli && go build -trimpath -ldflags "${LDFLAGS}" -o "../${OUTFILE}" ./cmd/neoarc/ && cd ..
 
           ls -lh "${OUTFILE}"
           echo "OUTFILE=${OUTFILE}" >> "$GITHUB_ENV"
